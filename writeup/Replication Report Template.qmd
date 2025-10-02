@@ -33,7 +33,7 @@ Subjects dragged and dropped words in a circular array on a computer screen, arr
 One challenge for me would be to create this experiment in JsPsych, as I have little experience in coding through JsPsych. Another challenge would be the statistical analysis of the data, where they represented each word in a 89-dimensional space.
 
 #### Link to original paper
-https://github.com/Junyi-Ch/wang2021/blob/5d14173c206e148ecf507ae991633fdfdb4b7656/writeup/Replication%20Report%20Template.qmd
+https://github.com/Junyi-Ch/wang2021/blob/5d14173c206e148ecf507ae991633fdfdb4b7656/original_paper/wang-bi-2021-idiosyncratic-tower-of-babel-individual-differences-in-word-meaning-representation-increase-as-word.pdf
 
 ## Methods
 
