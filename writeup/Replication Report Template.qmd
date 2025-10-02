@@ -14,6 +14,23 @@ format:
 
 [No abstract is needed.]  Each replication project will have a straightforward, no frills report of the study and results.  These reports will be publicly available as supplementary material for the aggregate report(s) of the project as a whole.  Also, to maximize project integrity, the intro and methods will be written and critiqued in advance of data collection.  Introductions can be just 1-2 paragraphs clarifying the main idea of the original study, the target finding for replication, and any other essential information. You will likely contact the authors of the original study, so this should be professional and forward facing. It will NOT have a literature review -- that is in the original publication. You can write both the introduction and the methods in past tense.  
 
+### Short Justification
+
+My research interests centered around language development, learning, and processing. I chose this experiment because I would like to do studies on semantic network, word knowledge, and individual differences. I would like to eventually do this type of studies in children, and I am still trying to poke around to see what might work for my own project. I think this experiment is a good point to start
+because it studies how adults differ in their representations of words, and how this depends on the abstractness of words. I would be able to learn specific ways of conducting the experiment and data analysis 
+that will be useful for my own study in the future.
+
+### Stimulus and Procedures
+
+#### Stimuli
+Stimuli consisted  of  90  written  Chinese words,  of  which  40 were  object  words  and  50  were words  without  explicit  external referents. Words without external referents varied in their  emotional  associations;  20  words  did  not  have emotional connotations,  and  30  were  emotionally  related words (e.g., violence). The list is included in the paper. 
+
+#### Procedures
+##### Semantic Judgment Task
+Subjects dragged and dropped words in a circular array on a computer screen, arranging them spatially close together or far apart  according  to  the  words’  semantic  distances. Participants do this through multiple trials where each trial contains a subset of the 90 words that were clustered together in a previous trial.
+
+#### Challenges
+One challenge for me would be to create this experiment in JsPsych, as I have little experience in coding through JsPsych. Another challenge would be the statistical analysis of the data, where they represented each word in a 89-dimensional space.
 
 ## Methods
 
