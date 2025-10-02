@@ -1,6 +1,8 @@
 ---
-title: "Replication of Study X by Sample & Sample (20xx, Psychological Science)"
-author: "Replication Author[s] (contact information)"
+title: "Replication of Idiosyncratic Tower of Babel: Individual 
+Differences in Word-Meaning Representation 
+Increase as Word Abstractness Increases by Wang & Bi (2021, Psychological Science)"
+author: "Junyi Chen (contact information)"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 format:
   html:
