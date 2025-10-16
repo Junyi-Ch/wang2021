@@ -28,6 +28,28 @@ that will be useful for my own study in the future.
 Stimuli consisted  of  90  written  Chinese words,  of  which  40 were  object  words  and  50  were words  without  explicit  external referents. Words without external referents varied in their  emotional  associations;  20  words  did  not  have emotional connotations,  and  30  were  emotionally  related words (e.g., violence). The list is included in the paper. 
 
 #### Procedures
+##### update for oct15th
+* I plan to contact the authors for their data analysis and the task. I have also tried out building the task in jspsych, and it seems to work as described in the paper.
+* I will try to use their availabel data (https://osf.io/cyusp/overview BehavioralSemanticDistanceMatrix ) to see if I can replicate the results using their data. 
+* I plan to reduce the amount of words to decrease the experiment time for participants. Currently it is 1 hour and too long. 
+* From what I can understand, their over pipeline is as followed:
+  + Task:
+    - 90 words displayed around a circular arena on a computer screen
+    - subjects drag and drop words to arrange them spatially based on semantic similarity
+    - Trial 1: All 90 words arranged, producing a 90 x 90 distance matrix.
+    - subsequent trials: adaptively selected word subsets presented for arrangement depending on the original clusters, and subjects completed varying numbers of trials.
+  + The adaptive selection process (the part I'm most unsure about)
+    - The system maintains an evidence weight matrix for all word pairs. Then, then system finds the weakest evidence pair. Then it adds words by calculating the trial efficieny until adding a word's benefit is not larger than its cost. These words form a subset. 
+  + Data Analysis:
+    - Inter-Subject Correlation (ISC) Analysis: 
+    Word representation: Each word represented as an 89-dimensional vector (its distances to all other words)
+    Pairwise correlations: Pearson correlations computed between each pair of subjects' word vectors
+    Fisher z-transformation: Applied to normalize correlation distributions
+    Averaging: Mean correlation across all 190 subject pairs (20 subjects total)
+    Result: ISC-behavior score for each word, indicating how consistently that word's semantic relationships are judged across subjects
+
+
+
 ##### Semantic Judgment Task
 Subjects dragged and dropped words in a circular array on a computer screen, arranging them spatially close together or far apart  according  to  the  words’  semantic  distances. Participants do this through multiple trials where each trial contains a subset of the 90 words that were clustered together in a previous trial.
 
