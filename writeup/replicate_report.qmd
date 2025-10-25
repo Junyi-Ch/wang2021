@@ -66,16 +66,19 @@ https://github.com/Junyi-Ch/wang2021/blob/5d14173c206e148ecf507ae991633fdfdb4b76
 ### Planned Sample
 
 Because this replication uses about 60% the number of words and only one arrangement per participant (less information per person about each word), I plan to increase the behavioral sample modestly from 20 to 30. I will stop data collection when 30 usable datasets are collected. A dataset is usable if the participant completes the arrangement and passes attention/comprehension checks.
+
 Participants will be adults recruited from UCSD. Inclusion criteria: native speakers of Mandarin Chinese. Participants will receive course credit or monetary compensation.
 
 ### Materials
 
 "Stimuli in our study consisted of 90 written Chinese words, of which 40 were object words and 50 were words without explicit external referents (see the Appendix). Object words varied in their sensory and motor attributes; they consisted of 10 animals (e.g., cat), 10 face or body parts (e.g., shoulder), and 20 artifacts such as tools and common household objects (e.g., microwave). Words without external referents varied in their emotional associations; 20 words did not have emotional connotations (i.e., “nonemotional nonobject” words, as determined by being rated as having low arousal [< 3] and being emotionally neutral [3.5–4.5] on 7-point scales by independent groups of college students; see below), and 30 were emotionally related words (e.g., violence)."
+
 I will use a 63-word subset rather than the full 90 words. I will maintain the same types/categories and match mean familiarity and frequency (as closely as possible) across the subset categories.
 
 ### Procedure	
 
 "Semantic distance-judgment task. The word-meaning representations were obtained using a multiarrangement paradigm (Kriegeskorte & Mur, 2012). In this paradigm, subjects dragged and dropped words in a circular array on a computer screen, arranging them spatially close together or far apart according to the words’ semantic distances (Fig. 1a). The task consisted of multiple trials. In the first trial, subjects had to arrange all 90 words, producing a 90 × 90 matrix containing Euclidean distances among all the words. In subsequent trials, subjects were shown adaptively selected word subsets that had been clustered together in previous trials, producing partial distance matrices. The task lasted for 1 hr, during which subjects completed various numbers of trials (M = 85, SD = 71, range = 24–284). The final distance measure for each subject was calculated as the weighted average of distance measures of their multiple arrangements. Multidimensional scaling was carried out to visualize individual semantic distance matrices (number of dimensions [ndim] = 2, type = interval) using the smacof package (de Leeuw & Mair, 2009) in the R programming environment (Version 4.0.0; R Core Team, 2020)."
+
 I will follow the multi-arrangement paradigm reported in Wang & Bi (Kriegeskorte & Mur, 2012) but instead of many adaptive trials, each participant will perform a single full-set arrangement. (I haven't decided on this yet).
 
 ### Analysis Plan
