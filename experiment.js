@@ -3,6 +3,11 @@ const jsPsych = initJsPsych({
   on_finish: () => jsPsych.data.displayData()
 });
 
+// Create subject ID and filename
+const subject_id = jsPsych.randomization.randomID(10);
+const filename = `${subject_id}.csv`;
+
+
 /* ---------- Word list (Chinese + English) ---------- */
 const bilingual_words = [
   { zh: "蚂蚁", en: "ant" }, { zh: "脚踝", en: "ankle" },
@@ -371,6 +376,17 @@ const circleTrial = {
     jsPsych.data.addData({ placements });
   }
 };
+
+const save_data = {
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "dsYOUzAvTYUp",  // your experiment key
+  filename: filename,
+  data_string: () => jsPsych.data.get().csv()
+};
+
+timeline.push(save_data);
+
 
 /* ---------- Run experiment ---------- */
 jsPsych.run([lang_choice, start_screen, circleTrial]);
