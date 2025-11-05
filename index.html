@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Word Circle Task</title>
+  <script src="jspsych/jspsych.js"></script>
+  <script src="jspsych/plugin-html-button-response.js"></script>
+  <script src="jspsych/plugin-html-keyboard-response.js"></script>
+  <script src="experiment.js"></script>
+  <link rel="stylesheet" href="experiment.css">
+  <script>
+    // ========================================
+    // DATA CONVERSION FUNCTIONS FOR ISC ANALYSIS
+    // ========================================
+    
+    /**
+     * Convert word positions to distance matrix
+     * @param {Array} positions - Array of {word: string, x: number, y: number}
+     * @returns {Array} n x n distance matrix
+     */
+
+     /**
+ * Add this code to your existing experiment to calculate and save ISC data
+ * 
+ * Call processPlacementsForISC(placements) with your placements array
+ * to get back an object that includes the matrix and vector
+ */
+
+/**
+ * Process placements data to add distance matrix and dissimilarity vector
+ * @param {Array} placements - Your existing placements array with word, x, y, etc.
+ * @returns {Object} Original data plus distance_matrix and dissimilarity_vector
+ */
+function processPlacementsForISC(placements) {
+  const n = placements.length;
+  
+  // Step 1: Calculate distance matrix using cx and cy (center coordinates)
+  const distanceMatrix = Array(n).fill(null).map(() => Array(n).fill(0));
+  
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      // Use cx and cy (center coordinates) for more accurate distances
+      const dx = placements[i].cx - placements[j].cx;
+      const dy = placements[i].cy - placements[j].cy;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      distanceMatrix[i][j] = distance;
+      distanceMatrix[j][i] = distance; // Symmetric
+    }
+  }
+  
+  // Step 2: Normalize the matrix to 0-1 range
+  let min = Infinity;
+  let max = -Infinity;
+  
+  // Find min and max (excluding diagonal)
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i !== j) {
+        min = Math.min(min, distanceMatrix[i][j]);
+        max = Math.max(max, distanceMatrix[i][j]);
+      }
+    }
+  }
+  
+  // Create normalized matrix
+  const normalizedMatrix = Array(n).fill(null).map(() => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i === j) {
+        normalizedMatrix[i][j] = 0;
+      } else {
+        normalizedMatrix[i][j] = (distanceMatrix[i][j] - min) / (max - min);
+      }
+    }
+  }
+  
+  // Step 3: Convert to vector form (upper triangle only)
+  const dissimilarityVector = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      dissimilarityVector.push(normalizedMatrix[i][j]);
+    }
+  }
+  
+  // Step 4: Extract word list in order
+  const words = placements.map(p => p.word);
+  
+  // Verify we have 63 words
+  console.log(`Processing ${n} words, creating ${dissimilarityVector.length} pairwise distances`);
+  if (n === 63) {
+    console.log(`✓ Correct number of words. Vector length should be ${(63 * 62) / 2} = 1953`);
+  }
+  
+  return {
+    n_words: n,
+    words: words,
+    placements: placements,
+    distance_matrix: normalizedMatrix,
+    dissimilarity_vector: dissimilarityVector,
+    matrix_stats: {
+      min_distance: min,
+      max_distance: max,
+      mean_normalized: dissimilarityVector.reduce((a, b) => a + b, 0) / dissimilarityVector.length
+    }
+  };
+}
+
+/**
+ * Alternative: Calculate using angular distances if words are on circle
+ * Use this if participants arrange words on the circle perimeter
+ */
+function processPlacementsAngular(placements) {
+  const n = placements.length;
+  
+  // Calculate angular distance matrix using angle_deg field
+  const angularMatrix = Array(n).fill(null).map(() => Array(n).fill(0));
+  
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      // Convert degrees to radians
+      const angle1 = (placements[i].angle_deg * Math.PI) / 180;
+      const angle2 = (placements[j].angle_deg * Math.PI) / 180;
+      
+      // Calculate angular distance (minimum arc)
+      let diff = Math.abs(angle1 - angle2);
+      if (diff > Math.PI) {
+        diff = 2 * Math.PI - diff;
+      }
+      
+      angularMatrix[i][j] = diff;
+      angularMatrix[j][i] = diff;
+    }
+  }
+  
+  // Normalize to 0-1 range (0 to π becomes 0 to 1)
+  const normalizedMatrix = angularMatrix.map(row => 
+    row.map(val => val / Math.PI)
+  );
+  
+  // Set diagonal to 0
+  for (let i = 0; i < n; i++) {
+    normalizedMatrix[i][i] = 0;
+  }
+  
+  // Convert to vector
+  const dissimilarityVector = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      dissimilarityVector.push(normalizedMatrix[i][j]);
+    }
+  }
+  
+  const words = placements.map(p => p.word);
+  
+  return {
+    n_words: n,
+    words: words,
+    placements: placements,
+    distance_matrix_angular: normalizedMatrix,
+    dissimilarity_vector_angular: dissimilarityVector,
+    distance_metric: 'angular'
+  };
+}
+
+/**
+ * MAIN FUNCTION: Add this to your save data function
+ * 
+ * Example usage in your code:
+ * 
+ * // Your existing data
+ * const experimentData = {
+ *   participant_id: "sub001",
+ *   timestamp: new Date().toISOString(),
+ *   placements: [
+ *     {word: "电视", x: 265, y: 127, cx: 290, cy: 144, ...},
+ *     {word: "桌子", x: 196, y: 315, cx: 221, cy: 332, ...},
+ *     // ... all 63 words
+ *   ]
+ * };
+ * 
+ * // Add ISC data
+ * const iscData = processPlacementsForISC(experimentData.placements);
+ * const finalData = Object.assign({}, experimentData, iscData);
+ * 
+ * // Now save finalData - it will include the matrix and vector!
+ */
+
+// Example of how to integrate with your existing save function
+function enhanceDataWithISC(originalData) {
+  if (!originalData.placements) {
+    console.error('No placements found in data');
+    return originalData;
+  }
+  
+  // Process placements to get ISC data
+  const iscData = processPlacementsForISC(originalData.placements);
+  
+  // Merge with original data
+  const enhancedData = {
+    ...originalData,
+    ...iscData,
+    isc_data_version: '1.0',
+    isc_processing_timestamp: new Date().toISOString()
+  };
+  
+  // Log summary
+  console.log('ISC Data Enhancement Complete:');
+  console.log(`- Words: ${iscData.n_words}`);
+  console.log(`- Distance matrix: ${iscData.n_words}x${iscData.n_words}`);
+  console.log(`- Dissimilarity vector: ${iscData.dissimilarity_vector.length} values`);
+  console.log(`- Mean normalized distance: ${iscData.matrix_stats.mean_normalized.toFixed(3)}`);
+  
+  return enhancedData;
+}
+
+// If you're using module exports
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    processPlacementsForISC,
+    processPlacementsAngular,
+    enhanceDataWithISC
+  };
+}
+
+// Make functions globally available
+if (typeof window !== 'undefined') {
+  window.ISCProcessor = {
+    processPlacementsForISC,
+    processPlacementsAngular,
+    enhanceDataWithISC
+  };
+}
+    function calculateDistanceMatrix(positions) {
+      const n = positions.length;
+      const matrix = Array(n).fill(null).map(() => Array(n).fill(0));
+      
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const dx = positions[i].x - positions[j].x;
+          const dy = positions[i].y - positions[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          matrix[i][j] = distance;
+          matrix[j][i] = distance;
+        }
+      }
+      
+      return matrix;
+    }
+    
+    /**
+     * Normalize distance matrix to 0-1 range
+     * @param {Array} matrix - Distance matrix
+     * @returns {Array} Normalized matrix
+     */
+    function normalizeMatrix(matrix) {
+      const n = matrix.length;
+      let min = Infinity;
+      let max = -Infinity;
+      
+      // Find min and max (excluding diagonal)
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          if (i !== j) {
+            min = Math.min(min, matrix[i][j]);
+            max = Math.max(max, matrix[i][j]);
+          }
+        }
+      }
+      
+      // Normalize to 0-1 range
+      const normalized = Array(n).fill(null).map(() => Array(n).fill(0));
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          if (i === j) {
+            normalized[i][j] = 0;
+          } else {
+            normalized[i][j] = (matrix[i][j] - min) / (max - min);
+          }
+        }
+      }
+      
+      return normalized;
+    }
+    
+    /**
+     * Convert matrix to vector form (upper triangle only)
+     * Compatible with MATLAB's squareform function
+     * @param {Array} matrix - Square matrix
+     * @returns {Array} Vector of upper triangle values
+     */
+    function matrixToVector(matrix) {
+      const n = matrix.length;
+      const vector = [];
+      
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          vector.push(matrix[i][j]);
+        }
+      }
+      
+      return vector;
+    }
+    
+    /**
+     * Process circle arrangement data for ISC analysis
+     * @param {Object} taskData - Raw data from your jsPsych task
+     * @returns {Object} ISC-ready data structure
+     */
+    function prepareDataForISC(taskData) {
+      // Extract positions from your task
+      // This assumes taskData contains word positions
+      // Adjust based on your actual data structure
+      const positions = taskData.word_positions || taskData.positions;
+      const words = taskData.words || positions.map(p => p.word);
+      
+      // Calculate distance matrix
+      const distanceMatrix = calculateDistanceMatrix(positions);
+      
+      // Normalize distances
+      const normalizedMatrix = normalizeMatrix(distanceMatrix);
+      
+      // Convert to vector form for ISC analysis
+      const dissimilarityVector = matrixToVector(normalizedMatrix);
+      
+      // Create ISC-ready data structure
+      const iscData = {
+        // Participant information
+        participant_id: taskData.participant_id || taskData.subject_id || generateParticipantId(),
+        timestamp: taskData.timestamp || new Date().toISOString(),
+        
+        // Word list (must be consistent across participants!)
+        words: words,
+        n_words: words.length,
+        
+        // Raw position data
+        positions: positions,
+        
+        // Circle information if available
+        circle_center: taskData.circle_center || null,
+        circle_radius: taskData.circle_radius || null,
+        
+        // Processed dissimilarity data for ISC
+        distance_matrix: normalizedMatrix,
+        dissimilarity_vector: dissimilarityVector,
+        
+        // Task metadata
+        trial_duration: taskData.rt || taskData.duration || null,
+        
+        // Browser information
+        browser_info: {
+          userAgent: navigator.userAgent,
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height
+        }
+      };
+      
+      return iscData;
+    }
+    
+    /**
+     * Generate participant ID if not provided
+     */
+    function generateParticipantId() {
+      return 'p' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    }
+    
+    /**
+     * Save ISC-ready data
+     * @param {Object} iscData - Processed data ready for ISC analysis
+     */
+    function saveISCData(iscData) {
+      // Option 1: Download as JSON file
+      const blob = new Blob([JSON.stringify(iscData, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `participant_${iscData.participant_id}_isc_data.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      // Option 2: Save to localStorage
+      localStorage.setItem(`isc_data_${iscData.participant_id}`, JSON.stringify(iscData));
+      
+      // Option 3: Send to server (uncomment and configure as needed)
+      /*
+      fetch('/save-isc-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(iscData)
+      })
+      .then(response => response.json())
+      .then(result => console.log('Data saved:', result))
+      .catch(error => console.error('Error saving data:', error));
+      */
+      
+      return iscData;
+    }
+    
+    // ========================================
+    // INTEGRATION WITH YOUR JSPSYCH EXPERIMENT
+    // ========================================
+    
+    // Override or extend jsPsych's on_finish to include ISC data processing
+    if (typeof jsPsych !== 'undefined') {
+      const originalOnFinish = jsPsych.opts ? jsPsych.opts.on_finish : null;
+      
+      // Add ISC data processing to experiment finish
+      if (jsPsych.opts) {
+        jsPsych.opts.on_finish = function(data) {
+          // Call original on_finish if it exists
+          if (originalOnFinish) {
+            originalOnFinish(data);
+          }
+          
+          // Process data for ISC analysis
+          const trials = data.filter({trial_type: 'word-circle-arrangement'});
+          if (trials.count() > 0) {
+            const lastTrial = trials.last(1).values()[0];
+            const iscData = prepareDataForISC(lastTrial);
+            saveISCData(iscData);
+            console.log('ISC data prepared and saved:', iscData);
+          }
+        };
+      }
+    }
+    
+    // Export functions for use in experiment.js
+    window.ISCDataProcessing = {
+      calculateDistanceMatrix,
+      normalizeMatrix,
+      matrixToVector,
+      prepareDataForISC,
+      saveISCData
+    };
+
+    
+  </script>
+</head>
+<body>
+  <script>
+  // Wait for everything to load
+  window.addEventListener('load', function() {
+    
+    // Intercept JSON.stringify (catches ALL data saves)
+    const originalStringify = JSON.stringify;
+    JSON.stringify = function(value, replacer, space) {
+      
+      // Check if this is data with placements
+      if (value && value.placements && !value.distance_matrix) {
+        console.log('Adding ISC data...');
+        
+        // Process placements for ISC
+        const iscData = processPlacementsForISC(value.placements);
+        
+        // Merge ISC data with original
+        const enhancedValue = {
+          ...value,
+          ...iscData
+        };
+        
+        // Stringify the enhanced data
+        return originalStringify.call(this, enhancedValue, replacer, space);
+      }
+      
+      // Not experiment data, stringify normally
+      return originalStringify.call(this, value, replacer, space);
+    };
+    
+    console.log('ISC interceptor installed!');
+  });
+</script>
+</body>
+</html>
