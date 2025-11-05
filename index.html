@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <title>Word Circle Task</title>
+  <!-- Load stylesheets first -->
+  <link rel="stylesheet" href="jspsych/jspsych.css">
+  <link rel="stylesheet" href="experiment.css">
+  
+  <!-- Load jsPsych core -->
   <script src="jspsych/jspsych.js"></script>
+  
+  <!-- Load jsPsych plugins -->
   <script src="jspsych/plugin-html-button-response.js"></script>
   <script src="jspsych/plugin-html-keyboard-response.js"></script>
-  <script src="experiment.js"></script>
-  <link rel="stylesheet" href="experiment.css">
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
+  
+  <!-- Load experiment last -->
+  <script defer src="experiment.js"></script>
   <script>
     // ========================================
     // DATA CONVERSION FUNCTIONS FOR ISC ANALYSIS
@@ -439,37 +448,6 @@ if (typeof window !== 'undefined') {
   </script>
 </head>
 <body>
-  <script>
-  // Wait for everything to load
-  window.addEventListener('load', function() {
-    
-    // Intercept JSON.stringify (catches ALL data saves)
-    const originalStringify = JSON.stringify;
-    JSON.stringify = function(value, replacer, space) {
-      
-      // Check if this is data with placements
-      if (value && value.placements && !value.distance_matrix) {
-        console.log('Adding ISC data...');
-        
-        // Process placements for ISC
-        const iscData = processPlacementsForISC(value.placements);
-        
-        // Merge ISC data with original
-        const enhancedValue = {
-          ...value,
-          ...iscData
-        };
-        
-        // Stringify the enhanced data
-        return originalStringify.call(this, enhancedValue, replacer, space);
-      }
-      
-      // Not experiment data, stringify normally
-      return originalStringify.call(this, value, replacer, space);
-    };
-    
-    console.log('ISC interceptor installed!');
-  });
-</script>
+
 </body>
 </html>

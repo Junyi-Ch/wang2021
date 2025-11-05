@@ -3,6 +3,9 @@ const jsPsych = initJsPsych({
   on_finish: () => jsPsych.data.displayData()
 });
 
+// Create timeline array
+const timeline = [];
+
 // Create subject ID and filename
 const subject_id = jsPsych.randomization.randomID(10);
 const filename = `${subject_id}.csv`;
@@ -291,56 +294,20 @@ const circleTrial = {
           // show a blank overlay with final message
           const overlay = document.createElement('div');
           overlay.id = 'finish-overlay';
-          overlay.innerHTML = `<div><h1>You are done! Thank you for your participating!</h1><button id="save-data">Save Data</button></div>`;
+          overlay.innerHTML = `<div><h1>You are done! Thank you for your participation!</h1></div>`;
           document.body.appendChild(overlay);
 
-          // save placements (POST to server, fallback to download) when Save Data clicked
-          const saveBtn = document.getElementById('save-data');
-          saveBtn.addEventListener('click', () => {
-            const payload = { placements: placements, timestamp: new Date().toISOString(), participant_number: (window.participantNumber || 'unknown') };
-
-            // Attempt to POST the placements to a server endpoint (/save_placement).
-            // If the server isn't available, fall back to downloading a JSON file.
-            const tryPostThenFinish = () => {
-              // try localhost server by default; change this URL if your server runs elsewhere
-              return fetch('http://localhost:5000/save_placement', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              })
-              .then(resp => {
-                if (resp.ok) return resp.text();
-                throw new Error('Server save failed');
-              });
-            };
-
-            const finishLocally = () => {
-              const dataStr = JSON.stringify(payload, null, 2);
-              const blob = new Blob([dataStr], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              const p = (window.participantNumber || 'unknown');
-              const filename = `P${p}_${(new Date()).toISOString().replace(/[:.]/g,'-')}.json`;
-              // Note: browsers ignore paths; users will download to their Downloads folder.
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              URL.revokeObjectURL(url);
-            };
-
-            // Try server save, else fallback to download
-            tryPostThenFinish()
-              .catch(err => {
-                console.warn('Server save failed, falling back to download:', err);
-                finishLocally();
-              })
-              .finally(() => {
-                overlay.remove();
-                jsPsych.finishTrial(payload);
-              });
-          });
+          // Add the data to jsPsych and finish the trial
+          const payload = { 
+            placements: placements, 
+            timestamp: new Date().toISOString(), 
+            participant_number: (window.participantNumber || 'unknown') 
+          };
+          
+          setTimeout(() => {
+            overlay.remove();
+            jsPsych.finishTrial(payload);
+          }, 2000);
         });
       }
   },
@@ -382,11 +349,52 @@ const save_data = {
   action: "save",
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename,
-  data_string: () => jsPsych.data.get().csv()
+  data_string: () => {
+    // Get the trial with placements
+    const trial = jsPsych.data.get().filter({placements: {$exists: true}}).values()[0];
+    if (!trial) {
+      console.error('No placement data found');
+      return;
+    }
+
+    // Process the placements data for ISC
+    const iscData = processPlacementsForISC(trial.placements);
+    
+    // Combine all the data we want to save
+    const finalData = {
+      participant_id: subject_id,
+      participant_number: window.participantNumber || 'unknown',
+      language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
+      timestamp: new Date().toISOString(),
+      ...trial,
+      isc_analysis: iscData
+    };
+
+    // Return as JSON string
+    return JSON.stringify(finalData, null, 2);
+  }
 };
 
+
+/* ---------- Experiment timeline ---------- */
+timeline.push(lang_choice);
+timeline.push(start_screen);
+timeline.push(circleTrial);
 timeline.push(save_data);
 
+// Add data processor to handle ISC calculations
+jsPsych.data.addProperties({
+  processISCData: function(data) {
+    if (data.placements) {
+      const iscData = processPlacementsForISC(data.placements);
+      return {
+        ...data,
+        ...iscData
+      };
+    }
+    return data;
+  }
+});
 
 /* ---------- Run experiment ---------- */
-jsPsych.run([lang_choice, start_screen, circleTrial]);
+jsPsych.run(timeline);
