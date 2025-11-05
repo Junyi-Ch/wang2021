@@ -371,7 +371,39 @@ const save_data = {
     };
 
     // Return as JSON string
+    // Log payload for debugging
+    try {
+      console.log('jsPsychPipe: data_string will send the following payload:');
+      console.log(finalData);
+      // expose to window for easy inspection in console
+      window.__lastDatapipePayload = finalData;
+    } catch (e) {
+      console.warn('Could not log finalData', e);
+    }
+
     return JSON.stringify(finalData, null, 2);
+  }
+};
+
+// Diagnostic trial: check whether the datapipe plugin is available at runtime
+const check_datapipe = {
+  type: jsPsychCallFunction,
+  func: () => {
+    console.log('--- Datapipe diagnostic ---');
+    console.log('typeof jsPsychPipe:', typeof jsPsychPipe);
+    try {
+      console.log('jsPsych.plugins["pipe"]:', jsPsych.plugins && jsPsych.plugins['pipe']);
+    } catch (e) {
+      console.warn('Could not read jsPsych.plugins["pipe"]', e);
+    }
+    // show counts of data entries and last trial with placements
+    try {
+      const withPlacements = jsPsych.data.get().filter(tr => tr.placements !== undefined).values();
+      console.log('Trials with placements count:', withPlacements.length);
+      if (withPlacements.length > 0) console.log('Example placement trial (first):', withPlacements[0]);
+    } catch (e) {
+      console.warn('Error checking jsPsych.data', e);
+    }
   }
 };
 
@@ -380,6 +412,8 @@ const save_data = {
 timeline.push(lang_choice);
 timeline.push(start_screen);
 timeline.push(circleTrial);
+// add diagnostic check so console shows plugin presence and payload before attempting save
+timeline.push(check_datapipe);
 timeline.push(save_data);
 
 // Add data processor to handle ISC calculations
