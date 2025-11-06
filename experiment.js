@@ -321,54 +321,87 @@ const circleTrial = {
 };
 
 // Save both CSV data and JSON data separately
+// Single save function that includes all data in CSV format
 const save_csv = {
   type: jsPsychPipe,
   action: "save",
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename,
   data_string: () => {
-    const data = jsPsych.data.get();
-    // Ensure we have the placement data in the CSV
-    if (window.__lastPlacementsData) {
-      data.push(window.__lastPlacementsData);
-    }
-    return data.csv();
-  }
-};
-
-const save_json = {
-  type: jsPsychPipe,
-  action: "save",
-  experiment_id: "dsYOUzAvTYUp",  // your experiment key
-  filename: filename.replace('.csv', '.json'),
-  data_string: () => {
-    // Get the placement data from our stored global variable
-    const placementData = window.__lastPlacementsData;
-    if (!placementData || !placementData.placements) {
-      console.error('No placement data found');
-      return JSON.stringify({}); // Return empty object to prevent save error
-    }
-
-    // Process the placements data for ISC if the function exists
-    let iscData = {};
-    if (typeof processPlacementsForISC === 'function') {
-      iscData = processPlacementsForISC(placementData.placements);
-    }
+    const allData = [];
     
-    // Combine all the data we want to save
-    const finalData = {
-      participant_id: subject_id,
-      participant_number: window.participantNumber || 'unknown',
-      language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
-      timestamp: new Date().toISOString(),
-      ...placementData,
-      isc_analysis: iscData
-    };
+    // Get the language choice
+    const languageData = jsPsych.data.get().filter({language: {$exists: true}}).values()[0];
+    const language = languageData ? languageData.language : 'unknown';
+    
+    // Get all word placements from the finish button handler
+    const placements = document.querySelectorAll('.word');
+    if (placements.length > 0) {
+      const dropZone = document.getElementById('drop-zone');
+      const dropZoneRect = dropZone.getBoundingClientRect();
+      
+      placements.forEach((word) => {
+        const rect = word.getBoundingClientRect();
+        const x = rect.left - dropZoneRect.left;
+        const y = rect.top - dropZoneRect.top;
+        const cx = x + rect.width / 2;
+        const cy = y + rect.height / 2;
+        const cx_pct = cx / dropZoneRect.width;
+        const cy_pct = cy / dropZoneRect.height;
+        const dx = cx - dropZoneRect.width / 2;
+        const dy = cy - dropZoneRect.height / 2;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const radius_pct = dist / (dropZoneRect.width / 2);
+        const angle_deg = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        // Create a row for each word placement
+        allData.push({
+          participant_id: subject_id,
+          participant_number: window.participantNumber || 'unknown',
+          language: language,
+          timestamp: new Date().toISOString(),
+          word: word.textContent,
+          x_position: x,
+          y_position: y,
+          center_x: cx,
+          center_y: cy,
+          center_x_percent: cx_pct,
+          center_y_percent: cy_pct,
+          radius_percent: radius_pct,
+          angle_degrees: angle_deg,
+          is_selected: word.classList.contains('selected')
+        });
+      });
+    }
 
-    // Log payload for debugging
-    console.log('jsPsychPipe: saving JSON data:', finalData);
+    // If no data was collected, add at least one row with participant info
+    if (allData.length === 0) {
+      allData.push({
+        participant_id: subject_id,
+        participant_number: window.participantNumber || 'unknown',
+        language: language,
+        timestamp: new Date().toISOString(),
+        word: 'NO_DATA',
+        x_position: null,
+        y_position: null,
+        center_x: null,
+        center_y: null,
+        center_x_percent: null,
+        center_y_percent: null,
+        radius_percent: null,
+        angle_degrees: null,
+        is_selected: null
+      });
+    }
 
-    return JSON.stringify(finalData);  // Remove pretty printing for smaller payload
+    // Convert to CSV string
+    const headers = Object.keys(allData[0]);
+    const csv = [
+      headers.join(','),
+      ...allData.map(row => headers.map(header => JSON.stringify(row[header])).join(','))
+    ].join('\\n');
+
+    return csv;
   }
 };
 
@@ -401,9 +434,8 @@ timeline.push(start_screen);
 timeline.push(circleTrial);
 // add diagnostic check so console shows plugin presence and payload before attempting save
 timeline.push(check_datapipe);
-// Save both CSV and JSON formats
+// Save data in CSV format with all placement information
 timeline.push(save_csv);
-timeline.push(save_json);
 
 // Add data processor to handle ISC calculations
 jsPsych.data.addProperties({
