@@ -336,8 +336,15 @@ const circleTrial = {
             } catch (e) {
               console.warn('Error attempting direct datapipe POST', e);
             }
+            // Compute ISC (matrix + vector) before saving
+            const enhancedPayload = enhanceDataWithISC(payload);
 
-            jsPsych.finishTrial(payload);
+// Add to jsPsych data for saving later
+            jsPsych.data.write(enhancedPayload);
+
+// Continue to next trial
+            jsPsych.finishTrial(enhancedPayload);
+
           }, 2000);
         });
       }
@@ -348,126 +355,14 @@ const circleTrial = {
   }
 };
 
-// Save both CSV data and JSON data separately
-// Single save function that includes all data in CSV format
-const save_csv = {
-  type: jsPsychPipe,
-  action: "save",
-  experiment_id: "dsYOUzAvTYUp",  // your experiment key
-  filename: filename,
-  data_string: () => {
-    const allData = [];
-    
-    // Get the language choice
-    const languageData = jsPsych.data.get().filter({language: {$exists: true}}).values()[0];
-    const language = languageData ? languageData.language : 'unknown';
-    
-    // Get all word placements from the finish button handler
-    const placements = document.querySelectorAll('.word');
-    if (placements.length > 0) {
-      const dropZone = document.getElementById('drop-zone');
-      const dropZoneRect = dropZone.getBoundingClientRect();
-      
-      placements.forEach((word) => {
-        const rect = word.getBoundingClientRect();
-        const x = rect.left - dropZoneRect.left;
-        const y = rect.top - dropZoneRect.top;
-        const cx = x + rect.width / 2;
-        const cy = y + rect.height / 2;
-        const cx_pct = cx / dropZoneRect.width;
-        const cy_pct = cy / dropZoneRect.height;
-        const dx = cx - dropZoneRect.width / 2;
-        const dy = cy - dropZoneRect.height / 2;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const radius_pct = dist / (dropZoneRect.width / 2);
-        const angle_deg = Math.atan2(dy, dx) * 180 / Math.PI;
-        
-        // Create a row for each word placement
-        allData.push({
-          participant_id: subject_id,
-          participant_number: window.participantNumber || 'unknown',
-          language: language,
-          timestamp: new Date().toISOString(),
-          word: word.textContent,
-          x_position: x,
-          y_position: y,
-          center_x: cx,
-          center_y: cy,
-          center_x_percent: cx_pct,
-          center_y_percent: cy_pct,
-          radius_percent: radius_pct,
-          angle_degrees: angle_deg,
-          is_selected: word.classList.contains('selected')
-        });
-      });
-    }
-
-    // If no data was collected, add at least one row with participant info
-    if (allData.length === 0) {
-      allData.push({
-        participant_id: subject_id,
-        participant_number: window.participantNumber || 'unknown',
-        language: language,
-        timestamp: new Date().toISOString(),
-        word: 'NO_DATA',
-        x_position: null,
-        y_position: null,
-        center_x: null,
-        center_y: null,
-        center_x_percent: null,
-        center_y_percent: null,
-        radius_percent: null,
-        angle_degrees: null,
-        is_selected: null
-      });
-    }
-
-    // Convert to CSV string
-    const headers = Object.keys(allData[0]);
-    const csv = [
-      headers.join(','),
-      ...allData.map(row => headers.map(header => JSON.stringify(row[header])).join(','))
-    ].join('\\n');
-
-    return csv;
-  }
-};
-
-// Also save a JSON copy (use the last placements stored when participant finished)
-const save_json = {
+const save_data = {
   type: jsPsychPipe,
   action: "save",
   experiment_id: "dsYOUzAvTYUp",
-  filename: filename.replace('.csv', '.json'),
-  data_string: () => {
-    // Prefer the explicit captured payload, fall back to jsPsych data store
-    const payloadFromWindow = window.__lastPlacementsData;
-    const trialFromStore = jsPsych.data.get().filter(tr => tr.placements !== undefined).values()[0];
-    const payload = payloadFromWindow || trialFromStore || null;
-
-    if (!payload) {
-      console.error('No placement data found for JSON save');
-      // return minimal valid JSON so the plugin call doesn't reject for undefined
-      return JSON.stringify({
-        participant_id: subject_id,
-        participant_number: window.participantNumber || 'unknown',
-        timestamp: new Date().toISOString(),
-        error: 'no_placement_data'
-      });
-    }
-
-    const finalObj = {
-      participant_id: subject_id,
-      participant_number: window.participantNumber || 'unknown',
-      language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
-      timestamp: new Date().toISOString(),
-      placements: payload.placements || payload.placements === undefined ? payload.placements : payload
-    };
-
-    console.log('jsPsychPipe: JSON payload prepared', finalObj);
-    return JSON.stringify(finalObj);
-  }
+  filename: filename,
+  data_string: () => jsPsych.data.get().csv()
 };
+
 
 // Diagnostic trial: check whether the datapipe plugin is available at runtime
 const check_datapipe = {
@@ -499,10 +394,8 @@ timeline.push(start_screen);
 timeline.push(circleTrial);
 // add diagnostic check so console shows plugin presence and payload before attempting save
 timeline.push(check_datapipe);
-// Save data in CSV format with all placement information
-timeline.push(save_csv);
-// Also save JSON payload (placements + metadata)
-timeline.push(save_json);
+timeline.push(save_data);
+
 
 // Add data processor to handle ISC calculations
 jsPsych.data.addProperties({
