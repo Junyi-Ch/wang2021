@@ -309,42 +309,7 @@ const circleTrial = {
           
           setTimeout(() => {
             overlay.remove();
-            // Attempt a direct POST to the datapipe endpoint as a backup and for debugging
-            try {
-              // send JSON payload to datapipe and log response for debugging
-              if (window.fetch) {
-                const dpPayload = {
-                  experiment_id: "dsYOUzAvTYUp",
-                  filename: filename.replace('.csv', '.json'),
-                  data_string: JSON.stringify({
-                    participant_id: subject_id,
-                    participant_number: window.participantNumber || 'unknown',
-                    timestamp: new Date().toISOString(),
-                    placements: payload.placements
-                  })
-                };
-
-                fetch('https://pipe.jspsych.org/api/data/', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(dpPayload)
-                }).then(async resp => {
-                  const text = await resp.text();
-                  console.log('Datapipe direct POST response', resp.status, text);
-                }).catch(err => console.error('Datapipe direct POST error', err));
-              }
-            } catch (e) {
-              console.warn('Error attempting direct datapipe POST', e);
-            }
-            // Compute ISC (matrix + vector) before saving
-            const enhancedPayload = enhanceDataWithISC(payload);
-
-// Add to jsPsych data for saving later
-            jsPsych.data.write(enhancedPayload);
-
-// Continue to next trial
-            jsPsych.finishTrial(enhancedPayload);
-
+            jsPsych.finishTrial(payload);
           }, 2000);
         });
       }
@@ -355,14 +320,57 @@ const circleTrial = {
   }
 };
 
-const save_data = {
+// Save both CSV data and JSON data separately
+const save_csv = {
   type: jsPsychPipe,
   action: "save",
-  experiment_id: "dsYOUzAvTYUp",
+  experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename,
-  data_string: () => jsPsych.data.get().csv()
+  data_string: () => {
+    const data = jsPsych.data.get();
+    // Ensure we have the placement data in the CSV
+    if (window.__lastPlacementsData) {
+      data.push(window.__lastPlacementsData);
+    }
+    return data.csv();
+  }
 };
 
+const save_json = {
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "dsYOUzAvTYUp",  // your experiment key
+  filename: filename.replace('.csv', '.json'),
+  data_string: () => {
+    // Get the placement data from our stored global variable
+    const placementData = window.__lastPlacementsData;
+    if (!placementData || !placementData.placements) {
+      console.error('No placement data found');
+      return JSON.stringify({}); // Return empty object to prevent save error
+    }
+
+    // Process the placements data for ISC if the function exists
+    let iscData = {};
+    if (typeof processPlacementsForISC === 'function') {
+      iscData = processPlacementsForISC(placementData.placements);
+    }
+    
+    // Combine all the data we want to save
+    const finalData = {
+      participant_id: subject_id,
+      participant_number: window.participantNumber || 'unknown',
+      language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
+      timestamp: new Date().toISOString(),
+      ...placementData,
+      isc_analysis: iscData
+    };
+
+    // Log payload for debugging
+    console.log('jsPsychPipe: saving JSON data:', finalData);
+
+    return JSON.stringify(finalData);  // Remove pretty printing for smaller payload
+  }
+};
 
 // Diagnostic trial: check whether the datapipe plugin is available at runtime
 const check_datapipe = {
@@ -380,7 +388,6 @@ const check_datapipe = {
       const withPlacements = jsPsych.data.get().filter(tr => tr.placements !== undefined).values();
       console.log('Trials with placements count:', withPlacements.length);
       if (withPlacements.length > 0) console.log('Example placement trial (first):', withPlacements[0]);
-      console.log('window.__lastPlacementsData:', window.__lastPlacementsData);
     } catch (e) {
       console.warn('Error checking jsPsych.data', e);
     }
@@ -394,8 +401,9 @@ timeline.push(start_screen);
 timeline.push(circleTrial);
 // add diagnostic check so console shows plugin presence and payload before attempting save
 timeline.push(check_datapipe);
-timeline.push(save_data);
-
+// Save both CSV and JSON formats
+timeline.push(save_csv);
+timeline.push(save_json);
 
 // Add data processor to handle ISC calculations
 jsPsych.data.addProperties({
