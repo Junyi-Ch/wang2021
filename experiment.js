@@ -344,11 +344,20 @@ const circleTrial = {
   }
 };
 
-const save_data = {
+// Save both CSV data and JSON data separately
+const save_csv = {
   type: jsPsychPipe,
   action: "save",
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename,
+  data_string: () => jsPsych.data.get().csv()
+};
+
+const save_json = {
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "dsYOUzAvTYUp",  // your experiment key
+  filename: filename.replace('.csv', '.json'),
   data_string: () => {
     // Get the trial with placements
     const trial = jsPsych.data.get().filter({placements: {$exists: true}}).values()[0];
@@ -370,18 +379,11 @@ const save_data = {
       isc_analysis: iscData
     };
 
-    // Return as JSON string
     // Log payload for debugging
-    try {
-      console.log('jsPsychPipe: data_string will send the following payload:');
-      console.log(finalData);
-      // expose to window for easy inspection in console
-      window.__lastDatapipePayload = finalData;
-    } catch (e) {
-      console.warn('Could not log finalData', e);
-    }
+    console.log('jsPsychPipe: saving JSON data:', finalData);
+    window.__lastDatapipePayload = finalData;
 
-    return JSON.stringify(finalData, null, 2);
+    return JSON.stringify(finalData);  // Remove pretty printing for smaller payload
   }
 };
 
@@ -414,7 +416,9 @@ timeline.push(start_screen);
 timeline.push(circleTrial);
 // add diagnostic check so console shows plugin presence and payload before attempting save
 timeline.push(check_datapipe);
-timeline.push(save_data);
+// Save both CSV and JSON formats
+timeline.push(save_csv);
+timeline.push(save_json);
 
 // Add data processor to handle ISC calculations
 jsPsych.data.addProperties({
