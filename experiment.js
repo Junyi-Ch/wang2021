@@ -405,6 +405,42 @@ const save_csv = {
   }
 };
 
+// Also save a JSON copy (use the last placements stored when participant finished)
+const save_json = {
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "dsYOUzAvTYUp",
+  filename: filename.replace('.csv', '.json'),
+  data_string: () => {
+    // Prefer the explicit captured payload, fall back to jsPsych data store
+    const payloadFromWindow = window.__lastPlacementsData;
+    const trialFromStore = jsPsych.data.get().filter(tr => tr.placements !== undefined).values()[0];
+    const payload = payloadFromWindow || trialFromStore || null;
+
+    if (!payload) {
+      console.error('No placement data found for JSON save');
+      // return minimal valid JSON so the plugin call doesn't reject for undefined
+      return JSON.stringify({
+        participant_id: subject_id,
+        participant_number: window.participantNumber || 'unknown',
+        timestamp: new Date().toISOString(),
+        error: 'no_placement_data'
+      });
+    }
+
+    const finalObj = {
+      participant_id: subject_id,
+      participant_number: window.participantNumber || 'unknown',
+      language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
+      timestamp: new Date().toISOString(),
+      placements: payload.placements || payload.placements === undefined ? payload.placements : payload
+    };
+
+    console.log('jsPsychPipe: JSON payload prepared', finalObj);
+    return JSON.stringify(finalObj);
+  }
+};
+
 // Diagnostic trial: check whether the datapipe plugin is available at runtime
 const check_datapipe = {
   type: jsPsychCallFunction,
@@ -421,6 +457,7 @@ const check_datapipe = {
       const withPlacements = jsPsych.data.get().filter(tr => tr.placements !== undefined).values();
       console.log('Trials with placements count:', withPlacements.length);
       if (withPlacements.length > 0) console.log('Example placement trial (first):', withPlacements[0]);
+      console.log('window.__lastPlacementsData:', window.__lastPlacementsData);
     } catch (e) {
       console.warn('Error checking jsPsych.data', e);
     }
@@ -436,6 +473,8 @@ timeline.push(circleTrial);
 timeline.push(check_datapipe);
 // Save data in CSV format with all placement information
 timeline.push(save_csv);
+// Also save JSON payload (placements + metadata)
+timeline.push(save_json);
 
 // Add data processor to handle ISC calculations
 jsPsych.data.addProperties({
