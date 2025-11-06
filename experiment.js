@@ -311,37 +311,9 @@ const circleTrial = {
         });
       }
   },
-  on_finish: (data) => {
-    const placements = [];
-    document.querySelectorAll(".word").forEach(w => {
-      const parentRect = w.parentElement.getBoundingClientRect();
-      const rect = w.getBoundingClientRect();
-      const x = rect.left - parentRect.left;
-      const y = rect.top - parentRect.top;
-      const cx = x + rect.width / 2;
-      const cy = y + rect.height / 2;
-      const cx_pct = cx / parentRect.width;
-      const cy_pct = cy / parentRect.height;
-      const dx = cx - parentRect.width / 2;
-      const dy = cy - parentRect.height / 2;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const radius_pct = dist / (parentRect.width / 2);
-      const angle_deg = Math.atan2(dy, dx) * 180 / Math.PI;
-      placements.push({
-        word: w.textContent,
-        x: x,
-        y: y,
-        cx: cx,
-        cy: cy,
-        cx_pct: cx_pct,
-        cy_pct: cy_pct,
-        radius_pct: radius_pct,
-        angle_deg: angle_deg,
-        selected: w.classList.contains("selected")
-      });
-    });
-    // Add data to the trial data object directly
-    data.placements = placements;
+  on_finish: function(data) {
+    // We don't need to collect placements here as they are already collected in the finish button click handler
+    // and added to the trial data via finishTrial(payload)
   }
 };
 
