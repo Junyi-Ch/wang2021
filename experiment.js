@@ -304,9 +304,6 @@ const circleTrial = {
             participant_number: (window.participantNumber || 'unknown') 
           };
           
-          // Store the placements data in a global variable for access by save functions
-          window.__lastPlacementsData = payload;
-          
           setTimeout(() => {
             overlay.remove();
             jsPsych.finishTrial(payload);
@@ -314,9 +311,37 @@ const circleTrial = {
         });
       }
   },
-  on_finish: function(data) {
-    // We don't need to collect placements here as they are already collected in the finish button click handler
-    // and added to the trial data via finishTrial(payload)
+  on_finish: (data) => {
+    const placements = [];
+    document.querySelectorAll(".word").forEach(w => {
+      const parentRect = w.parentElement.getBoundingClientRect();
+      const rect = w.getBoundingClientRect();
+      const x = rect.left - parentRect.left;
+      const y = rect.top - parentRect.top;
+      const cx = x + rect.width / 2;
+      const cy = y + rect.height / 2;
+      const cx_pct = cx / parentRect.width;
+      const cy_pct = cy / parentRect.height;
+      const dx = cx - parentRect.width / 2;
+      const dy = cy - parentRect.height / 2;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const radius_pct = dist / (parentRect.width / 2);
+      const angle_deg = Math.atan2(dy, dx) * 180 / Math.PI;
+      placements.push({
+        word: w.textContent,
+        x: x,
+        y: y,
+        cx: cx,
+        cy: cy,
+        cx_pct: cx_pct,
+        cy_pct: cy_pct,
+        radius_pct: radius_pct,
+        angle_deg: angle_deg,
+        selected: w.classList.contains("selected")
+      });
+    });
+    // Add data to the trial data object directly
+    data.placements = placements;
   }
 };
 
@@ -326,14 +351,7 @@ const save_csv = {
   action: "save",
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename,
-  data_string: () => {
-    const data = jsPsych.data.get();
-    // Ensure we have the placement data in the CSV
-    if (window.__lastPlacementsData) {
-      data.push(window.__lastPlacementsData);
-    }
-    return data.csv();
-  }
+  data_string: () => jsPsych.data.get().csv()
 };
 
 const save_json = {
@@ -342,18 +360,15 @@ const save_json = {
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename.replace('.csv', '.json'),
   data_string: () => {
-    // Get the placement data from our stored global variable
-    const placementData = window.__lastPlacementsData;
-    if (!placementData || !placementData.placements) {
+    // Get the trial with placements
+    const trial = jsPsych.data.get().filter({placements: {$exists: true}}).values()[0];
+    if (!trial) {
       console.error('No placement data found');
-      return JSON.stringify({}); // Return empty object to prevent save error
+      return;
     }
 
-    // Process the placements data for ISC if the function exists
-    let iscData = {};
-    if (typeof processPlacementsForISC === 'function') {
-      iscData = processPlacementsForISC(placementData.placements);
-    }
+    // Process the placements data for ISC
+    const iscData = processPlacementsForISC(trial.placements);
     
     // Combine all the data we want to save
     const finalData = {
@@ -361,12 +376,13 @@ const save_json = {
       participant_number: window.participantNumber || 'unknown',
       language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
       timestamp: new Date().toISOString(),
-      ...placementData,
+      ...trial,
       isc_analysis: iscData
     };
 
     // Log payload for debugging
     console.log('jsPsychPipe: saving JSON data:', finalData);
+    window.__lastDatapipePayload = finalData;
 
     return JSON.stringify(finalData);  // Remove pretty printing for smaller payload
   }
