@@ -309,6 +309,34 @@ const circleTrial = {
           
           setTimeout(() => {
             overlay.remove();
+            // Attempt a direct POST to the datapipe endpoint as a backup and for debugging
+            try {
+              // send JSON payload to datapipe and log response for debugging
+              if (window.fetch) {
+                const dpPayload = {
+                  experiment_id: "dsYOUzAvTYUp",
+                  filename: filename.replace('.csv', '.json'),
+                  data_string: JSON.stringify({
+                    participant_id: subject_id,
+                    participant_number: window.participantNumber || 'unknown',
+                    timestamp: new Date().toISOString(),
+                    placements: payload.placements
+                  })
+                };
+
+                fetch('https://pipe.jspsych.org/api/data/', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(dpPayload)
+                }).then(async resp => {
+                  const text = await resp.text();
+                  console.log('Datapipe direct POST response', resp.status, text);
+                }).catch(err => console.error('Datapipe direct POST error', err));
+              }
+            } catch (e) {
+              console.warn('Error attempting direct datapipe POST', e);
+            }
+
             jsPsych.finishTrial(payload);
           }, 2000);
         });
