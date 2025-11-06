@@ -304,6 +304,9 @@ const circleTrial = {
             participant_number: (window.participantNumber || 'unknown') 
           };
           
+          // Store the placements data in a global variable for access by save functions
+          window.__lastPlacementsData = payload;
+          
           setTimeout(() => {
             overlay.remove();
             jsPsych.finishTrial(payload);
@@ -323,7 +326,14 @@ const save_csv = {
   action: "save",
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename,
-  data_string: () => jsPsych.data.get().csv()
+  data_string: () => {
+    const data = jsPsych.data.get();
+    // Ensure we have the placement data in the CSV
+    if (window.__lastPlacementsData) {
+      data.push(window.__lastPlacementsData);
+    }
+    return data.csv();
+  }
 };
 
 const save_json = {
@@ -332,15 +342,18 @@ const save_json = {
   experiment_id: "dsYOUzAvTYUp",  // your experiment key
   filename: filename.replace('.csv', '.json'),
   data_string: () => {
-    // Get the trial with placements
-    const trial = jsPsych.data.get().filter({placements: {$exists: true}}).values()[0];
-    if (!trial) {
+    // Get the placement data from our stored global variable
+    const placementData = window.__lastPlacementsData;
+    if (!placementData || !placementData.placements) {
       console.error('No placement data found');
-      return;
+      return JSON.stringify({}); // Return empty object to prevent save error
     }
 
-    // Process the placements data for ISC
-    const iscData = processPlacementsForISC(trial.placements);
+    // Process the placements data for ISC if the function exists
+    let iscData = {};
+    if (typeof processPlacementsForISC === 'function') {
+      iscData = processPlacementsForISC(placementData.placements);
+    }
     
     // Combine all the data we want to save
     const finalData = {
@@ -348,13 +361,12 @@ const save_json = {
       participant_number: window.participantNumber || 'unknown',
       language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language,
       timestamp: new Date().toISOString(),
-      ...trial,
+      ...placementData,
       isc_analysis: iscData
     };
 
     // Log payload for debugging
     console.log('jsPsychPipe: saving JSON data:', finalData);
-    window.__lastDatapipePayload = finalData;
 
     return JSON.stringify(finalData);  // Remove pretty printing for smaller payload
   }
