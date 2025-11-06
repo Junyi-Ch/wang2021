@@ -311,7 +311,7 @@ const circleTrial = {
         });
       }
   },
-  on_finish: (data) => {
+  on_finish: () => {
     const placements = [];
     document.querySelectorAll(".word").forEach(w => {
       const parentRect = w.parentElement.getBoundingClientRect();
@@ -340,8 +340,7 @@ const circleTrial = {
         selected: w.classList.contains("selected")
       });
     });
-    // Add data to the trial data object directly
-    data.placements = placements;
+    jsPsych.data.addData({ placements });
   }
 };
 
