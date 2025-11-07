@@ -148,276 +148,245 @@ const circleTrial = {
     return generateWordCircleHTML(words);
   },
   choices: "NO_KEYS",
+
   on_load: () => {
     const words = document.querySelectorAll(".word");
 
+    // --- make words draggable/selectable ---
     words.forEach(w => {
-      // toggle selection on click
-      w.addEventListener("click", () => {
-        w.classList.toggle("selected");
-      });
-
-      // drag events
+      w.addEventListener("click", () => w.classList.toggle("selected"));
       w.addEventListener("dragstart", e => {
         e.dataTransfer.setData("text/plain", w.textContent);
         w.classList.add("dragging");
       });
-
-      w.addEventListener("dragend", e => {
-        w.classList.remove("dragging");
-      });
+      w.addEventListener("dragend", () => w.classList.remove("dragging"));
     });
 
+    // --- drop-zone logic ---
     const dropZone = document.getElementById("drop-zone");
-      // Only highlight / accept drops when the cursor is inside the circular area
-      function isInsideCircle(clientX, clientY, rect) {
-        const offsetX = clientX - rect.left;
-        const offsetY = clientY - rect.top;
-        const cx = rect.width / 2;
-        const cy = rect.height / 2;
-        const dx = offsetX - cx;
-        const dy = offsetY - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        return dist <= rect.width / 2; // inside circle radius
-      }
+    function isInsideCircle(x, y, rect) {
+      const dx = x - (rect.left + rect.width / 2);
+      const dy = y - (rect.top + rect.height / 2);
+      return Math.sqrt(dx * dx + dy * dy) <= rect.width / 2;
+    }
 
-      dropZone.addEventListener("dragenter", e => {
-        // compute whether the entry point is inside the circle
-        const rect = dropZone.getBoundingClientRect();
-        if (isInsideCircle(e.clientX, e.clientY, rect)) {
-          e.preventDefault();
-          dropZone.classList.add('drop-zone-active');
-        }
-      });
-
-      dropZone.addEventListener("dragover", e => {
-        const rect = dropZone.getBoundingClientRect();
-        if (isInsideCircle(e.clientX, e.clientY, rect)) {
-          e.preventDefault(); // allow drop only when inside circle
-          dropZone.classList.add('drop-zone-active');
-        } else {
-          dropZone.classList.remove('drop-zone-active');
-        }
-      });
-
-      dropZone.addEventListener("dragleave", e => {
-        // remove active state when leaving
-        dropZone.classList.remove('drop-zone-active');
-      });
-
-      dropZone.addEventListener("drop", e => {
+    dropZone.addEventListener("dragenter", e => {
+      const rect = dropZone.getBoundingClientRect();
+      if (isInsideCircle(e.clientX, e.clientY, rect)) {
         e.preventDefault();
-        const rect = dropZone.getBoundingClientRect();
-        // accept drop only if the cursor is within the circular area
-        if (!isInsideCircle(e.clientX, e.clientY, rect)) {
-          dropZone.classList.remove('drop-zone-active');
-          return; // ignore drops outside the circle
-        }
-        dropZone.classList.remove('drop-zone-active');
-        const dragging = document.querySelector(".dragging");
-        if (dragging) {
-          // coordinates relative to drop zone
-          const offsetX = e.clientX - rect.left;
-          const offsetY = e.clientY - rect.top;
-          dragging.style.left = `${offsetX}px`;
-          dragging.style.top = `${offsetY}px`;
+        dropZone.classList.add("drop-zone-active");
+      }
+    });
+    dropZone.addEventListener("dragover", e => {
+      const rect = dropZone.getBoundingClientRect();
+      if (isInsideCircle(e.clientX, e.clientY, rect)) {
+        e.preventDefault();
+        dropZone.classList.add("drop-zone-active");
+      } else dropZone.classList.remove("drop-zone-active");
+    });
+    dropZone.addEventListener("dragleave", () =>
+      dropZone.classList.remove("drop-zone-active")
+    );
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      const rect = dropZone.getBoundingClientRect();
+      if (!isInsideCircle(e.clientX, e.clientY, rect)) return;
+      dropZone.classList.remove("drop-zone-active");
+      const dragging = document.querySelector(".dragging");
+      if (dragging) {
+        dragging.style.left = `${e.clientX - rect.left}px`;
+        dragging.style.top = `${e.clientY - rect.top}px`;
+        dropZone.appendChild(dragging);
+      }
+    });
 
-          // append to drop zone so it stays inside
-          dropZone.appendChild(dragging);
-        }
+    // --- finish-button setup ---
+    const finishBtn = document.getElementById("finish-btn");
+    if (!finishBtn) return;
+
+    // helper: are all words inside?
+    function allWordsInside() {
+      const ws = Array.from(document.querySelectorAll(".word"));
+      const rect = dropZone.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const r = rect.width / 2;
+      return ws.every(w => {
+        const box = w.getBoundingClientRect();
+        const wx = box.left + box.width / 2;
+        const wy = box.top + box.height / 2;
+        return Math.hypot(wx - cx, wy - cy) <= r;
+      });
+    }
+
+    function updateFinishButton() {
+      finishBtn.disabled = !allWordsInside();
+    }
+
+    updateFinishButton();
+    dropZone.addEventListener("dragover", updateFinishButton);
+    dropZone.addEventListener("drop", () => setTimeout(updateFinishButton, 10));
+    document.addEventListener("dragend", () => setTimeout(updateFinishButton, 10));
+
+    // --- FINISH-button click handler ---
+    finishBtn.addEventListener("click", () => {
+      // collect placements
+      const placements = Array.from(document.querySelectorAll(".word")).map(w => {
+        const rect = w.getBoundingClientRect();
+        return {
+          word: w.textContent,
+          cx: rect.left + rect.width / 2,
+          cy: rect.top + rect.height / 2
+        };
       });
 
-      // Finish button behavior: check whether all words are inside the circle
-      const finishBtn = document.getElementById('finish-btn');
-      if (finishBtn) {
-        // function to test whether all words are inside the circular area
-        function allWordsInside() {
-          const wordsAll = Array.from(document.querySelectorAll('.word'));
-          const rect = dropZone.getBoundingClientRect();
-          const cx = rect.left + rect.width / 2;
-          const cy = rect.top + rect.height / 2;
-          const radius = rect.width / 2;
-          return wordsAll.every(w => {
-            const r = w.getBoundingClientRect();
-            const wx = r.left + r.width / 2;
-            const wy = r.top + r.height / 2;
-            const dx = wx - cx;
-            const dy = wy - cy;
-            return Math.sqrt(dx * dx + dy * dy) <= radius;
-          });
-        }
+      const payload = {
+        participant_id: subject_id,
+        participant_number: window.participantNumber || "unknown",
+        timestamp: new Date().toISOString(),
+        placements
+      };
 
-        function updateFinishButton() {
-          try {
-            const ok = allWordsInside();
-            finishBtn.disabled = !ok;
-          } catch (err) {
-            // if something goes wrong, keep button disabled
-            finishBtn.disabled = true;
-          }
-        }
+      // overlay “thank you”
+      const overlay = document.createElement("div");
+      overlay.id = "finish-overlay";
+      Object.assign(overlay.style, {
+        position: "fixed",
+        left: 0,
+        top: 0,
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(255,255,255,0.95)",
+        zIndex: 9999
+      });
+      overlay.innerHTML =
+        "<div style='text-align:center;'><h1>You are done! Thank you for your participation!</h1></div>";
+      document.body.appendChild(overlay);
 
-        // initial state
-        updateFinishButton();
-
-        // update button during relevant drag events
-        // existing dragover and drop handlers already call class toggles; also update on dragend
-        dropZone.addEventListener('dragover', e => {
-          // update button based on cursor position inside/outside
-          updateFinishButton();
-        });
-        dropZone.addEventListener('drop', e => {
-          // after drop, update button (word may have moved inside)
-          setTimeout(updateFinishButton, 10);
-        });
-        // update when a drag ends (in case word was dropped outside)
-        document.addEventListener('dragend', e => setTimeout(updateFinishButton, 10));
-
-        // show a brief overlay message immediately
-        const overlay = document.createElement('div');
-        overlay.id = 'finish-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.left = 0;
-        overlay.style.top = 0;
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.background = 'rgba(255,255,255,0.95)';
-        overlay.style.zIndex = 9999;
-        overlay.innerHTML = `<div style="text-align:center;"><h1>You are done! Thank you for your participation!</h1></div>`;
-        document.body.appendChild(overlay);
-
-        // Compute ISC outputs now (synchronously)
-        let iscResult = null;
-        try {
-          if (window.ISCProcessor && typeof window.ISCProcessor.processPlacementsForISC === 'function') {
-            iscResult = window.ISCProcessor.processPlacementsForISC(payload.placements);
-          } else if (typeof processPlacementsForISC === 'function') {
-            iscResult = processPlacementsForISC(payload.placements);
-          } else {
-            // fallback simple processing (same as before)
-            const p = payload.placements;
-            const n = p.length;
-            const dist = Array(n).fill(null).map(() => Array(n).fill(0));
-            for (let i = 0; i < n; i++) {
-              for (let j = i + 1; j < n; j++) {
-                const dx = p[i].cx - p[j].cx;
-                const dy = p[i].cy - p[j].cy;
-                const d = Math.sqrt(dx * dx + dy * dy);
-                dist[i][j] = d;
-                dist[j][i] = d;
-              }
+      // compute ISC
+      let iscResult;
+      try {
+        if (
+          window.ISCProcessor &&
+          typeof window.ISCProcessor.processPlacementsForISC === "function"
+        ) {
+          iscResult = window.ISCProcessor.processPlacementsForISC(placements);
+        } else if (typeof processPlacementsForISC === "function") {
+          iscResult = processPlacementsForISC(placements);
+        } else {
+          // fallback computation (short form)
+          const n = placements.length;
+          const dist = Array(n)
+            .fill()
+            .map(() => Array(n).fill(0));
+          for (let i = 0; i < n; i++)
+            for (let j = i + 1; j < n; j++) {
+              const d = Math.hypot(
+                placements[i].cx - placements[j].cx,
+                placements[i].cy - placements[j].cy
+              );
+              dist[i][j] = dist[j][i] = d;
             }
-            let min = Infinity, max = -Infinity;
-            for (let i = 0; i < n; i++) {
-              for (let j = 0; j < n; j++) {
-                if (i !== j) {
-                  min = Math.min(min, dist[i][j]);
-                  max = Math.max(max, dist[i][j]);
-                }
-              }
-            }
-            const norm = Array(n).fill(null).map(() => Array(n).fill(0));
-            const vec = [];
-            for (let i = 0; i < n; i++) {
-              for (let j = i + 1; j < n; j++) {
-                const val = (dist[i][j] - min) / (max - min || 1);
-                norm[i][j] = val;
-                norm[j][i] = val;
-                vec.push(val);
-              }
-            }
-            iscResult = {
-              n_words: n,
-              words: p.map(pp => pp.word),
-              placements: p,
-              distance_matrix: norm,
-              dissimilarity_vector: vec,
-              matrix_stats: {
-                min_distance: min,
-                max_distance: max,
-                mean_normalized: vec.length ? vec.reduce((a,b)=>a+b,0)/vec.length : null
-              }
-            };
-          }
-        } catch (e) {
-          console.error('Error computing ISC:', e);
+          const flat = dist.flat().filter((v, i) => i % (n + 1) !== 0);
+          const min = Math.min(...flat);
+          const max = Math.max(...flat);
+          const norm = dist.map(row =>
+            row.map(v => (v - min) / (max - min || 1))
+          );
+          const vec = [];
+          for (let i = 0; i < n; i++)
+            for (let j = i + 1; j < n; j++) vec.push(norm[i][j]);
           iscResult = {
-            n_words: payload.placements.length,
-            words: payload.placements.map(p=>p.word),
-            placements: payload.placements,
-            distance_matrix: null,
-            dissimilarity_vector: null,
-            matrix_stats: {}
+            n_words: n,
+            words: placements.map(p => p.word),
+            placements,
+            distance_matrix: norm,
+            dissimilarity_vector: vec,
+            matrix_stats: {
+              min_distance: min,
+              max_distance: max,
+              mean_normalized:
+                vec.length > 0
+                  ? vec.reduce((a, b) => a + b, 0) / vec.length
+                  : null
+            }
           };
         }
-
-        // Prepare CSV-friendly row (one row per participant)
-        const csvRow = {
-          participant_id: payload.participant_id,
-          participant_number: payload.participant_number,
-          language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language || 'unknown',
-          timestamp: payload.timestamp,
-          n_words: iscResult.n_words || payload.placements.length,
-          placements_json: JSON.stringify(iscResult.placements || payload.placements),
-          words_json: JSON.stringify(iscResult.words || payload.placements.map(p => p.word)),
-          distance_matrix_json: JSON.stringify(iscResult.distance_matrix || []),
-          dissimilarity_vector_json: JSON.stringify(iscResult.dissimilarity_vector || []),
-          matrix_min: iscResult.matrix_stats?.min_distance ?? null,
-          matrix_max: iscResult.matrix_stats?.max_distance ?? null,
-          matrix_mean_normalized: iscResult.matrix_stats?.mean_normalized ?? null,
-          userAgent: navigator.userAgent,
-          screenWidth: window.screen.width,
-          screenHeight: window.screen.height
-        };
-
-        // Combine and finish the trial — jsPsych will write this record automatically
-        const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
-        jsPsych.finishTrial(combinedData);
-
-        // Remove overlay after a short visual delay
-        setTimeout(() => {
-          overlay.remove();
-        }, 1500);
-
-
-          // --- Optional: Direct Datapipe POST (backup/debug) ---
-          try {
-            if (window.fetch) {
-              const dpPayload = {
-                experiment_id: "dsYOUzAvTYUp",
-                filename: filename.replace('.csv', '.json'),
-                data_string: JSON.stringify({
-                  participant_id: subject_id,
-                  participant_number: window.participantNumber || 'unknown',
-                  timestamp: new Date().toISOString(),
-                  placements: payload.placements,
-                  isc: iscResult
-                })
-              };
-
-              fetch('https://pipe.jspsych.org/api/data/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dpPayload)
-              }).then(async resp => {
-                const text = await resp.text();
-                console.log('Datapipe direct POST response', resp.status, text);
-              }).catch(err => console.error('Datapipe direct POST error', err));
-            }
-          } catch (e) {
-            console.warn('Error attempting direct datapipe POST', e);
-          }
-
-        });
+      } catch (e) {
+        console.error("Error computing ISC:", e);
+        iscResult = { placements };
       }
+
+      // make csv row
+      const csvRow = {
+        participant_id: payload.participant_id,
+        participant_number: payload.participant_number,
+        language:
+          jsPsych.data
+            .get()
+            .filter({ language: { $exists: true } })
+            .values()[0]?.language || "unknown",
+        timestamp: payload.timestamp,
+        n_words: iscResult.n_words || placements.length,
+        placements_json: JSON.stringify(iscResult.placements),
+        words_json: JSON.stringify(iscResult.words),
+        distance_matrix_json: JSON.stringify(iscResult.distance_matrix),
+        dissimilarity_vector_json: JSON.stringify(
+          iscResult.dissimilarity_vector
+        ),
+        matrix_min: iscResult.matrix_stats?.min_distance ?? null,
+        matrix_max: iscResult.matrix_stats?.max_distance ?? null,
+        matrix_mean_normalized:
+          iscResult.matrix_stats?.mean_normalized ?? null,
+        userAgent: navigator.userAgent,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height
+      };
+
+      const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
+
+      // finish trial (jsPsych writes data automatically)
+      jsPsych.finishTrial(combinedData);
+
+      // remove overlay shortly after
+      setTimeout(() => overlay.remove(), 1500);
+
+      // optional direct POST if you keep it
+      /*
+      try {
+        const dpPayload = {
+          experiment_id: "dsYOUzAvTYUp",
+          filename: filename.replace(".csv", ".json"),
+          data_string: JSON.stringify({
+            participant_id: subject_id,
+            participant_number: window.participantNumber || "unknown",
+            timestamp: new Date().toISOString(),
+            placements,
+            isc: iscResult
+          })
+        };
+        fetch("https://pipe.jspsych.org/api/data/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dpPayload)
+        })
+          .then(async r => console.log("Datapipe response", r.status, await r.text()))
+          .catch(e => console.error("Datapipe POST error", e));
+      } catch (e) {
+        console.warn("Error attempting datapipe POST", e);
+      }
+      */
+    });
   },
-  on_finish: function(data) {
-    // placements and CSV row are already written to jsPsych.data in the finish handler
+
+  on_finish: () => {
+    /* nothing extra here; data are added by finishTrial above */
   }
 };
+
 
 // Diagnostic trial: check whether the datapipe plugin is available at runtime
 const check_datapipe = {
