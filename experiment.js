@@ -373,10 +373,10 @@ const circleTrial = {
             screenHeight: window.screen.height
           };
 
-          // ✅ Write and finish the trial *before* timeout (trial still active)
-          const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
-          jsPsych.data.write(combinedData);
-          jsPsych.finishTrial(combinedData);
+          // ✅ Finish trial — this automatically writes combinedData into jsPsych.data
+            const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
+            jsPsych.finishTrial(combinedData);
+
 
           // --- Optional: remove overlay after short delay ---
           setTimeout(() => overlay.remove(), 2000);
