@@ -306,131 +306,109 @@ const circleTrial = {
           // Store the placements data in a global variable for access by save functions
           window.__lastPlacementsData = payload;
           
-          setTimeout(() => {
-            overlay.remove();
+          // --- Immediately compute ISC outputs and save data while trial is active ---
 
-            // --- ENHANCE: compute ISC outputs (distance matrix, vector) ---
-            // Prefer using the processor defined in index.html (window.ISCProcessor), otherwise compute inline
-            let iscResult = null;
-            try {
-              if (window.ISCProcessor && typeof window.ISCProcessor.processPlacementsForISC === 'function') {
-                iscResult = window.ISCProcessor.processPlacementsForISC(payload.placements);
-              } else if (typeof processPlacementsForISC === 'function') {
-                iscResult = processPlacementsForISC(payload.placements);
-              } else {
-                // fallback: simple local processing (distance matrix normalization)
-                iscResult = (function localProcess(p) {
-                  const n = p.length;
-                  const dist = Array(n).fill(null).map(() => Array(n).fill(0));
-                  for (let i = 0; i < n; i++) {
-                    for (let j = i + 1; j < n; j++) {
-                      const dx = p[i].cx - p[j].cx;
-                      const dy = p[i].cy - p[j].cy;
-                      const d = Math.sqrt(dx*dx + dy*dy);
-                      dist[i][j] = d;
-                      dist[j][i] = d;
-                    }
-                  }
-                  let min = Infinity, max = -Infinity;
-                  for (let i = 0; i < n; i++) {
-                    for (let j = 0; j < n; j++) {
-                      if (i !== j) {
-                        min = Math.min(min, dist[i][j]);
-                        max = Math.max(max, dist[i][j]);
-                      }
-                    }
-                  }
-                  const norm = Array(n).fill(null).map(() => Array(n).fill(0));
-                  const vec = [];
-                  for (let i = 0; i < n; i++) {
-                    for (let j = 0; j < n; j++) {
-                      if (i === j) norm[i][j] = 0;
-                      else norm[i][j] = (dist[i][j] - min) / (max - min || 1);
-                    }
-                  }
-                  for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++) vec.push(norm[i][j]);
-                  return {
-                    n_words: n,
-                    words: p.map(pp => pp.word),
-                    placements: p,
-                    distance_matrix: norm,
-                    dissimilarity_vector: vec,
-                    matrix_stats: {min_distance: min, max_distance: max, mean_normalized: vec.length ? vec.reduce((a,b)=>a+b,0)/vec.length : null}
-                  };
-                })(payload.placements);
+          // Compute ISC outputs (distance matrix, vector)
+          let iscResult = null;
+          try {
+            if (window.ISCProcessor && typeof window.ISCProcessor.processPlacementsForISC === 'function') {
+              iscResult = window.ISCProcessor.processPlacementsForISC(payload.placements);
+            } else if (typeof processPlacementsForISC === 'function') {
+              iscResult = processPlacementsForISC(payload.placements);
+            } else {
+              // fallback simple processing
+              const n = payload.placements.length;
+              const dist = Array(n).fill(null).map(() => Array(n).fill(0));
+              for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                  const dx = payload.placements[i].cx - payload.placements[j].cx;
+                  const dy = payload.placements[i].cy - payload.placements[j].cy;
+                  const d = Math.sqrt(dx * dx + dy * dy);
+                  dist[i][j] = d;
+                  dist[j][i] = d;
+                }
               }
-            } catch (e) {
-              console.error('Error computing ISC:', e);
+              let min = Infinity, max = -Infinity;
+              for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j) {
+                min = Math.min(min, dist[i][j]);
+                max = Math.max(max, dist[i][j]);
+              }
+              const norm = Array(n).fill(null).map(() => Array(n).fill(0));
+              const vec = [];
+              for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+                norm[i][j] = (dist[i][j] - min) / (max - min || 1);
+                norm[j][i] = norm[i][j];
+                vec.push(norm[i][j]);
+              }
               iscResult = {
-                n_words: placements.length,
-                words: placements.map(p=>p.word),
-                placements: placements,
-                distance_matrix: null,
-                dissimilarity_vector: null,
-                matrix_stats: {}
+                n_words: n,
+                words: payload.placements.map(p => p.word),
+                placements: payload.placements,
+                distance_matrix: norm,
+                dissimilarity_vector: vec,
+                matrix_stats: { min_distance: min, max_distance: max, mean_normalized: vec.reduce((a,b)=>a+b,0)/vec.length }
               };
             }
+          } catch (e) {
+            console.error('Error computing ISC:', e);
+            iscResult = { n_words: placements.length, words: placements.map(p=>p.word), distance_matrix: null, dissimilarity_vector: null, matrix_stats: {} };
+          }
 
-            // --- Prepare a flattened CSV-friendly row (one row per participant) ---
-            const csvRow = {
-              participant_id: payload.participant_id,
-              participant_number: payload.participant_number,
-              language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language || 'unknown',
-              timestamp: payload.timestamp,
-              n_words: iscResult.n_words || placements.length,
-              // store placements and matrices as JSON strings (quoted within CSV)
-              placements_json: JSON.stringify(iscResult.placements || payload.placements),
-              words_json: JSON.stringify(iscResult.words || placements.map(p => p.word)),
-              distance_matrix_json: JSON.stringify(iscResult.distance_matrix || []),
-              dissimilarity_vector_json: JSON.stringify(iscResult.dissimilarity_vector || []),
-              matrix_min: iscResult.matrix_stats?.min_distance ?? null,
-              matrix_max: iscResult.matrix_stats?.max_distance ?? null,
-              matrix_mean_normalized: iscResult.matrix_stats?.mean_normalized ?? null,
-              userAgent: navigator.userAgent,
-              screenWidth: window.screen.width,
-              screenHeight: window.screen.height
-            };
+          // Prepare a flattened CSV-friendly row
+          const csvRow = {
+            participant_id: payload.participant_id,
+            participant_number: payload.participant_number,
+            language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language || 'unknown',
+            timestamp: payload.timestamp,
+            n_words: iscResult.n_words || payload.placements.length,
+            placements_json: JSON.stringify(iscResult.placements || payload.placements),
+            words_json: JSON.stringify(iscResult.words || payload.placements.map(p => p.word)),
+            distance_matrix_json: JSON.stringify(iscResult.distance_matrix || []),
+            dissimilarity_vector_json: JSON.stringify(iscResult.dissimilarity_vector || []),
+            matrix_min: iscResult.matrix_stats?.min_distance ?? null,
+            matrix_max: iscResult.matrix_stats?.max_distance ?? null,
+            matrix_mean_normalized: iscResult.matrix_stats?.mean_normalized ?? null,
+            userAgent: navigator.userAgent,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height
+          };
 
-            // Write the CSV-friendly row to jsPsych data store
-            jsPsych.data.write(csvRow);
+          // ✅ Write and finish the trial *before* timeout (trial still active)
+          const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
+          jsPsych.data.write(combinedData);
+          jsPsych.finishTrial(combinedData);
 
-            // Also write the raw payload and the iscResult (redundant but useful)
-            jsPsych.data.write({
-              raw_payload: payload,
-              isc_raw: iscResult
-            });
+          // --- Optional: remove overlay after short delay ---
+          setTimeout(() => overlay.remove(), 2000);
 
-            // Attempt a direct POST to the datapipe endpoint as a backup and for debugging (optional)
-            try {
-              if (window.fetch) {
-                const dpPayload = {
-                  experiment_id: "dsYOUzAvTYUp",
-                  filename: filename.replace('.csv', '.json'),
-                  data_string: JSON.stringify({
-                    participant_id: subject_id,
-                    participant_number: window.participantNumber || 'unknown',
-                    timestamp: new Date().toISOString(),
-                    placements: payload.placements,
-                    isc: iscResult
-                  })
-                };
+          // --- Optional: Direct Datapipe POST (backup/debug) ---
+          try {
+            if (window.fetch) {
+              const dpPayload = {
+                experiment_id: "dsYOUzAvTYUp",
+                filename: filename.replace('.csv', '.json'),
+                data_string: JSON.stringify({
+                  participant_id: subject_id,
+                  participant_number: window.participantNumber || 'unknown',
+                  timestamp: new Date().toISOString(),
+                  placements: payload.placements,
+                  isc: iscResult
+                })
+              };
 
-                fetch('https://pipe.jspsych.org/api/data/', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(dpPayload)
-                }).then(async resp => {
-                  const text = await resp.text();
-                  console.log('Datapipe direct POST response', resp.status, text);
-                }).catch(err => console.error('Datapipe direct POST error', err));
-              }
-            } catch (e) {
-              console.warn('Error attempting direct datapipe POST', e);
+              fetch('https://pipe.jspsych.org/api/data/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dpPayload)
+              }).then(async resp => {
+                const text = await resp.text();
+                console.log('Datapipe direct POST response', resp.status, text);
+              }).catch(err => console.error('Datapipe direct POST error', err));
             }
+          } catch (e) {
+            console.warn('Error attempting direct datapipe POST', e);
+          }
 
-            // Finish the trial (advance the timeline)
-            jsPsych.finishTrial(csvRow);
-          }, 2000);
         });
       }
   },
