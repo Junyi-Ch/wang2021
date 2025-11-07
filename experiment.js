@@ -94,16 +94,16 @@ const lang_choice = {
   stimulus: "<p style='font-size:20px;'>Choose your language:</p>",
   choices: ["中文", "English"],
   on_finish: data => {
-    const lang = data.response === 0 ? "zh" : "en";
-    jsPsych.data.addProperties({ language: lang });
-    // prompt for participant number immediately after language selection
-    let pnum = window.prompt('Enter participant number (e.g. 001):');
-    if (pnum === null) pnum = 'unknown';
-    pnum = String(pnum).trim();
-    if (pnum.length === 0) pnum = 'unknown';
-    window.participantNumber = pnum;
-    // make it part of jsPsych data properties as well
-    jsPsych.data.addProperties({ participant_number: pnum });
+  const lang = data.response === 0 ? "zh" : "en";
+  jsPsych.data.addProperties({ language: lang });
+
+  // Create an automatic participant number (short, unique)
+  // Format: <random10>_<base36timestamp6> e.g. "a1b2c3d4e5_k9f2z1"
+  const autoId = `${subject_id}_${Date.now().toString(36).slice(-6)}`;
+  window.participantNumber = autoId;
+
+  // Add to global jsPsych properties so it appears on all trials
+  jsPsych.data.addProperties({ participant_number: window.participantNumber });
   }
 };
 
@@ -428,7 +428,11 @@ const debrief = {
   stimulus: `
     <div style="max-width:900px; margin:0 auto; text-align:left;">
       <h2>Debriefing</h2>
-      <p>This study investigates individual differences in people's semantic networks and whether they differ between concrete and abstract words.</p>
+      <p>Thank you for participating in our study!
+      <p> This research investigates how people mentally organize word meanings — in other words, how individuals represent and connect concepts in their “semantic networks.” We are especially interested in whether there are consistent individual differences in how people group words based on meaning, and whether these differences depend on the type of word — for example, whether the words refer to concrete things (like apple or chair) or to more abstract ideas (like justice or freedom).
+      By examining patterns across participants, we aim to better understand how people’s mental representations of language vary and what factors might shape those differences. This work may ultimately contribute to our understanding of how experience, culture, and cognition influence the way we structure meaning.
+      If you have any questions about the study, please contact the research team at [insert your lab or PI’s email address].</p>
+      <p>Thank you again for your time and contribution!</p>
       <p>If you have any questions about the study please contact the experimenter.</p>
     </div>
   `,
