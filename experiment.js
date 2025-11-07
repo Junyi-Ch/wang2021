@@ -1,7 +1,11 @@
 /* ---------- Initialize jsPsych ---------- */
 const jsPsych = initJsPsych({
-  on_finish: () => jsPsych.data.displayData()
+  on_finish: () => {
+    // do not display raw data to the participant
+    // final debrief and saving handled in timeline
+  }
 });
+
 
 // Create timeline array
 const timeline = [];
@@ -120,6 +124,20 @@ const start_screen = {
   // accept common space key identifiers to maximize cross-browser support
   choices: [' ', 'Space', 'Spacebar']
 };
+
+const enter_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+  message: `
+    <div style="max-width:900px; margin:0 auto; text-align:center;">
+      <h2>Full screen required</h2>
+      <p>For best performance this study will switch your browser to full screen. Please allow full screen and press the button below to continue.</p>
+      <p><strong>Note:</strong> to exit at any time press ESC (or follow your browser's full screen controls).</p>
+    </div>
+  `,
+  button_label: 'Enter full screen'
+};
+
 
 /* ---------- Trial: Main word-arrangement task ---------- */
 const circleTrial = {
@@ -255,131 +273,115 @@ const circleTrial = {
         // update when a drag ends (in case word was dropped outside)
         document.addEventListener('dragend', e => setTimeout(updateFinishButton, 10));
 
-        finishBtn.addEventListener('click', () => {
-          // Button should be enabled only when all words are inside, but re-check defensively
-          if (!allWordsInside()) return;
+        // show a brief overlay message immediately
+        const overlay = document.createElement('div');
+        overlay.id = 'finish-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.left = 0;
+        overlay.style.top = 0;
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.background = 'rgba(255,255,255,0.95)';
+        overlay.style.zIndex = 9999;
+        overlay.innerHTML = `<div style="text-align:center;"><h1>You are done! Thank you for your participation!</h1></div>`;
+        document.body.appendChild(overlay);
 
-          // collect placements
-          const placements = [];
-          document.querySelectorAll('.word').forEach(w => {
-            const parentRect = w.parentElement.getBoundingClientRect();
-            const rectW = w.getBoundingClientRect();
-            const x = rectW.left - parentRect.left;
-            const y = rectW.top - parentRect.top;
-            const cx = x + rectW.width / 2;
-            const cy = y + rectW.height / 2;
-            const cx_pct = cx / parentRect.width;
-            const cy_pct = cy / parentRect.height;
-            const dx = cx - parentRect.width / 2;
-            const dy = cy - parentRect.height / 2;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const radius_pct = dist / (parentRect.width / 2);
-            const angle_deg = Math.atan2(dy, dx) * 180 / Math.PI; // degrees, 0 = right
-            placements.push({
-              word: w.textContent,
-              x: x, // top-left relative to parent (pixels)
-              y: y,
-              cx: cx, // center relative to parent (pixels)
-              cy: cy,
-              cx_pct: cx_pct,
-              cy_pct: cy_pct,
-              radius_pct: radius_pct,
-              angle_deg: angle_deg,
-              selected: w.classList.contains('selected')
-            });
-          });
-
-          // show a blank overlay with final message
-          const overlay = document.createElement('div');
-          overlay.id = 'finish-overlay';
-          overlay.innerHTML = `<div><h1>You are done! Thank you for your participation!</h1></div>`;
-          document.body.appendChild(overlay);
-
-          // Add the data to jsPsych and finish the trial
-          const payload = { 
-            placements: placements, 
-            timestamp: new Date().toISOString(), 
-            participant_number: (window.participantNumber || 'unknown'),
-            participant_id: subject_id
-          };
-          
-          // Store the placements data in a global variable for access by save functions
-          window.__lastPlacementsData = payload;
-          
-          // --- Immediately compute ISC outputs and save data while trial is active ---
-
-          // Compute ISC outputs (distance matrix, vector)
-          let iscResult = null;
-          try {
-            if (window.ISCProcessor && typeof window.ISCProcessor.processPlacementsForISC === 'function') {
-              iscResult = window.ISCProcessor.processPlacementsForISC(payload.placements);
-            } else if (typeof processPlacementsForISC === 'function') {
-              iscResult = processPlacementsForISC(payload.placements);
-            } else {
-              // fallback simple processing
-              const n = payload.placements.length;
-              const dist = Array(n).fill(null).map(() => Array(n).fill(0));
-              for (let i = 0; i < n; i++) {
-                for (let j = i + 1; j < n; j++) {
-                  const dx = payload.placements[i].cx - payload.placements[j].cx;
-                  const dy = payload.placements[i].cy - payload.placements[j].cy;
-                  const d = Math.sqrt(dx * dx + dy * dy);
-                  dist[i][j] = d;
-                  dist[j][i] = d;
+        // Compute ISC outputs now (synchronously)
+        let iscResult = null;
+        try {
+          if (window.ISCProcessor && typeof window.ISCProcessor.processPlacementsForISC === 'function') {
+            iscResult = window.ISCProcessor.processPlacementsForISC(payload.placements);
+          } else if (typeof processPlacementsForISC === 'function') {
+            iscResult = processPlacementsForISC(payload.placements);
+          } else {
+            // fallback simple processing (same as before)
+            const p = payload.placements;
+            const n = p.length;
+            const dist = Array(n).fill(null).map(() => Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+              for (let j = i + 1; j < n; j++) {
+                const dx = p[i].cx - p[j].cx;
+                const dy = p[i].cy - p[j].cy;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                dist[i][j] = d;
+                dist[j][i] = d;
+              }
+            }
+            let min = Infinity, max = -Infinity;
+            for (let i = 0; i < n; i++) {
+              for (let j = 0; j < n; j++) {
+                if (i !== j) {
+                  min = Math.min(min, dist[i][j]);
+                  max = Math.max(max, dist[i][j]);
                 }
               }
-              let min = Infinity, max = -Infinity;
-              for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (i !== j) {
-                min = Math.min(min, dist[i][j]);
-                max = Math.max(max, dist[i][j]);
-              }
-              const norm = Array(n).fill(null).map(() => Array(n).fill(0));
-              const vec = [];
-              for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-                norm[i][j] = (dist[i][j] - min) / (max - min || 1);
-                norm[j][i] = norm[i][j];
-                vec.push(norm[i][j]);
-              }
-              iscResult = {
-                n_words: n,
-                words: payload.placements.map(p => p.word),
-                placements: payload.placements,
-                distance_matrix: norm,
-                dissimilarity_vector: vec,
-                matrix_stats: { min_distance: min, max_distance: max, mean_normalized: vec.reduce((a,b)=>a+b,0)/vec.length }
-              };
             }
-          } catch (e) {
-            console.error('Error computing ISC:', e);
-            iscResult = { n_words: placements.length, words: placements.map(p=>p.word), distance_matrix: null, dissimilarity_vector: null, matrix_stats: {} };
+            const norm = Array(n).fill(null).map(() => Array(n).fill(0));
+            const vec = [];
+            for (let i = 0; i < n; i++) {
+              for (let j = i + 1; j < n; j++) {
+                const val = (dist[i][j] - min) / (max - min || 1);
+                norm[i][j] = val;
+                norm[j][i] = val;
+                vec.push(val);
+              }
+            }
+            iscResult = {
+              n_words: n,
+              words: p.map(pp => pp.word),
+              placements: p,
+              distance_matrix: norm,
+              dissimilarity_vector: vec,
+              matrix_stats: {
+                min_distance: min,
+                max_distance: max,
+                mean_normalized: vec.length ? vec.reduce((a,b)=>a+b,0)/vec.length : null
+              }
+            };
           }
-
-          // Prepare a flattened CSV-friendly row
-          const csvRow = {
-            participant_id: payload.participant_id,
-            participant_number: payload.participant_number,
-            language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language || 'unknown',
-            timestamp: payload.timestamp,
-            n_words: iscResult.n_words || payload.placements.length,
-            placements_json: JSON.stringify(iscResult.placements || payload.placements),
-            words_json: JSON.stringify(iscResult.words || payload.placements.map(p => p.word)),
-            distance_matrix_json: JSON.stringify(iscResult.distance_matrix || []),
-            dissimilarity_vector_json: JSON.stringify(iscResult.dissimilarity_vector || []),
-            matrix_min: iscResult.matrix_stats?.min_distance ?? null,
-            matrix_max: iscResult.matrix_stats?.max_distance ?? null,
-            matrix_mean_normalized: iscResult.matrix_stats?.mean_normalized ?? null,
-            userAgent: navigator.userAgent,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height
+        } catch (e) {
+          console.error('Error computing ISC:', e);
+          iscResult = {
+            n_words: payload.placements.length,
+            words: payload.placements.map(p=>p.word),
+            placements: payload.placements,
+            distance_matrix: null,
+            dissimilarity_vector: null,
+            matrix_stats: {}
           };
+        }
 
-          // ✅ Finish trial — this automatically writes combinedData into jsPsych.data
-            const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
-            jsPsych.finishTrial(combinedData);
+        // Prepare CSV-friendly row (one row per participant)
+        const csvRow = {
+          participant_id: payload.participant_id,
+          participant_number: payload.participant_number,
+          language: jsPsych.data.get().filter({language: {$exists: true}}).values()[0]?.language || 'unknown',
+          timestamp: payload.timestamp,
+          n_words: iscResult.n_words || payload.placements.length,
+          placements_json: JSON.stringify(iscResult.placements || payload.placements),
+          words_json: JSON.stringify(iscResult.words || payload.placements.map(p => p.word)),
+          distance_matrix_json: JSON.stringify(iscResult.distance_matrix || []),
+          dissimilarity_vector_json: JSON.stringify(iscResult.dissimilarity_vector || []),
+          matrix_min: iscResult.matrix_stats?.min_distance ?? null,
+          matrix_max: iscResult.matrix_stats?.max_distance ?? null,
+          matrix_mean_normalized: iscResult.matrix_stats?.mean_normalized ?? null,
+          userAgent: navigator.userAgent,
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height
+        };
 
+        // Combine and finish the trial — jsPsych will write this record automatically
+        const combinedData = { ...csvRow, raw_payload: payload, isc_raw: iscResult };
+        jsPsych.finishTrial(combinedData);
 
-          // --- Optional: remove overlay after short delay ---
-          setTimeout(() => overlay.remove(), 2000);
+        // Remove overlay after a short visual delay
+        setTimeout(() => {
+          overlay.remove();
+        }, 1500);
+
 
           // --- Optional: Direct Datapipe POST (backup/debug) ---
           try {
@@ -452,14 +454,37 @@ const save_data = {
   }
 };
 
+const debrief = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div style="max-width:900px; margin:0 auto; text-align:left;">
+      <h2>Debriefing</h2>
+      <p>This study investigates individual differences in people's semantic networks and whether they differ between concrete and abstract words.</p>
+      <p>If you have any questions about the study please contact the experimenter.</p>
+    </div>
+  `,
+  choices: ['Finish'],
+  on_finish: () => {
+    // exit fullscreen after debrief (optional)
+    if (typeof jsPsych !== 'undefined' && jsPsych.pluginAPI) {
+      // use fullscreen plugin to exit
+      // Add a short fullscreen exit trial instead if plugin requires it; otherwise call requestExitFullscreen
+      try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
+    }
+  }
+};
+
+
 /* ---------- Experiment timeline ---------- */
 timeline.push(lang_choice);
 timeline.push(start_screen);
+timeline.push(enter_fullscreen);
 timeline.push(circleTrial);
 // diagnostic check (plugin presence and payload)
 timeline.push(check_datapipe);
 // single CSV save to datapipe
 timeline.push(save_data);
+timeline.push(debrief);   
 
 /* ---------- Run experiment ---------- */
 jsPsych.run(timeline);
