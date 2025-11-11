@@ -411,6 +411,58 @@ const check_datapipe = {
   }
 };
 
+
+/* ---------- Trial: Demographics Survey (NEW) ---------- */
+const demographics_survey = {
+  type: jsPsychSurveyHtmlForm,
+  preamble: '<h2>Demographic Information</h2><p>Please answer the following questions. Your responses will remain confidential.</p>',
+  html: `
+    <div class="jspsych-survey-html-form-item">
+      <label for="age"><strong>1. Age:</strong></label>
+      <input type="number" id="age" name="age" min="18" max="100" required>
+    </div>
+    <br>
+
+    <div class="jspsych-survey-html-form-item">
+      <label><strong>2. Gender:</strong></label><br>
+      <input type="radio" id="gender_female" name="gender" value="Female" required>
+      <label for="gender_female">Female</label><br>
+      <input type="radio" id="gender_male" name="gender" value="Male">
+      <label for="gender_male">Male</label><br>
+      <input type="radio" id="gender_nonbinary" name="gender" value="Non-binary">
+      <label for="gender_nonbinary">Non-binary</label><br>
+      <input type="radio" id="gender_other" name="gender" value="Other">
+      <label for="gender_other">Other (Please specify):</label>
+      <input type="text" name="gender_other_text" style="width: 150px;">
+    </div>
+    <br>
+
+    <div class="jspsych-survey-html-form-item">
+      <label for="education"><strong>3. Highest Education Level Completed:</strong></label>
+      <select id="education" name="education" required>
+        <option value="">--Select One--</option>
+        <option value="High School">High School Diploma/GED</option>
+        <option value="Some College">Some College (No Degree)</option>
+        <option value="Associate">Associate's Degree</option>
+        <option value="Bachelor">Bachelor's Degree</option>
+        <option value="Master">Master's Degree</option>
+        <option value="Doctorate">Doctoral Degree (e.g., PhD, EdD)</option>
+        <option value="Professional">Professional Degree (e.g., MD, JD)</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <br>
+
+    <div class="jspsych-survey-html-form-item">
+      <label for="languages"><strong>4. Please list all languages you speak/understand, and your proficiency level in each (e.g., Language: Fluent/Native, Language: Intermediate, etc.):</strong></label><br>
+      <textarea id="languages" name="languages" rows="4" cols="50" required></textarea>
+      <p style="font-size: small; color: gray;">Example: English: Native; Spanish: Intermediate; Chinese: Basic.</p>
+    </div>
+  `,
+  button_label: 'Continue'
+};
+
+
 /* ---------- Single DataPipe save trial (CSV) ---------- */
 const save_data = {
   type: jsPsychPipe,
@@ -455,6 +507,8 @@ timeline.push(enter_fullscreen);
 timeline.push(circleTrial);
 // diagnostic check (plugin presence and payload)
 timeline.push(check_datapipe);
+// Add the new demographics survey here
+timeline.push(demographics_survey); 
 // single CSV save to datapipe
 timeline.push(save_data);
 timeline.push(debrief);   
