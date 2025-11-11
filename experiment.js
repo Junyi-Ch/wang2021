@@ -412,7 +412,21 @@ const check_datapipe = {
 };
 
 
-/* ---------- Trial: Demographics Survey (NEW) ---------- */
+/* ---------- Helper function for Proficiency Select (NEW) ---------- */
+function createProficiencySelect(name, required = true) {
+  return `
+      <select id="${name}" name="${name}" ${required ? 'required' : ''}>
+          <option value="">--Select Proficiency--</option>
+          <option value="Native">Native Speaker</option>
+          <option value="Advanced">Advanced (Fluent, near-native)</option>
+          <option value="Intermediate">Intermediate (Conversational)</option>
+          <option value="Basic">Basic (Simple phrases, travel use)</option>
+          <option value="None">None</option>
+      </select>
+  `;
+}
+
+/* ---------- Trial: Demographics Survey (NEW, FIX APPLIED) ---------- */
 const demographics_survey = {
   type: jsPsychSurveyHtmlForm,
   preamble: '<h2>Demographic Information</h2><p>Please answer the following questions. Your responses will remain confidential.</p>',
@@ -454,9 +468,21 @@ const demographics_survey = {
     <br>
 
     <div class="jspsych-survey-html-form-item">
-      <label for="languages"><strong>4. Please list all languages you speak/understand, and your proficiency level in each (e.g., Language: Fluent/Native, Language: Intermediate, etc.):</strong></label><br>
-      <textarea id="languages" name="languages" rows="4" cols="50" required></textarea>
-      <p style="font-size: small; color: gray;">Example: English: Native; Spanish: Intermediate; Chinese: Basic.</p>
+      <label for="english_proficiency"><strong>4. English Proficiency:</strong></label>
+      ${createProficiencySelect('english_proficiency')}
+    </div>
+    <br>
+
+    <div class="jspsych-survey-html-form-item">
+      <label for="mandarin_proficiency"><strong>5. Mandarin Chinese (Putonghua/Guoyu) Proficiency:</strong></label>
+      ${createProficiencySelect('mandarin_proficiency')}
+    </div>
+    <br>
+
+    <div class="jspsych-survey-html-form-item">
+      <label for="other_languages"><strong>6. List any other languages you speak/understand, and your proficiency level in each:</strong></label><br>
+      <textarea id="other_languages" name="other_languages" rows="4" cols="50"></textarea>
+      <p style="font-size: small; color: gray;">Example: Cantonese: Native; Spanish: Basic; French: None.</p>
     </div>
   `,
   button_label: 'Continue'
@@ -508,7 +534,7 @@ timeline.push(circleTrial);
 // diagnostic check (plugin presence and payload)
 timeline.push(check_datapipe);
 // Add the new demographics survey here
-timeline.push(demographics_survey); 
+timeline.push(demographics_survey); // <-- NEW DEMOGRAPHICS SURVEY
 // single CSV save to datapipe
 timeline.push(save_data);
 timeline.push(debrief);   
