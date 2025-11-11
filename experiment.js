@@ -88,6 +88,34 @@ function generateWordCircleHTML(words) {
   return html;
 }
 
+/* ---------- Trial: Informed Consent Form (NEW) ---------- */
+const consent_form = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div style="max-width:800px; margin:0 auto; text-align:left; font-size: 16px; padding: 10px 0;">
+      <h1>Informed Consent Form</h1>
+      <p>You are being invited to participate in a research study titled <strong>“Reproducibility of Psychological Science and Instruction.”</strong> This study is being done by Dr. Bria Long from UC San Diego and associated graduate students in the Experimental Methods course. You were selected to participate in this study because you are an adult in the U.S. and have been a represented population in previous psychology studies.</p>
+      
+      <p>The purpose of this study is to better understand how well previously published studies in the psychological field replicate online and with different populations. Your participation in this research should last approximately <strong>5-30 minutes</strong>. If you agree to take part in this study, you may be asked to view a set of stimuli, including pictures, sounds, written text, or videos and then giving some responses via key-presses, verbally, or with paper-and-pencil. We may also observe your choices or preferences among an array of stimuli. These stimuli will be taken directly from or closely adapted from studies that already exist in the published psychological literature. Stimuli will include, e.g., pictures of objects and human faces, audio and video clips, short text passages, etc. None of the stimuli will be disturbing, threatening, or offensive. The online and in-person experiments described in this protocol will take no more than 30 minutes. An example game you might play would be to click on an image on the screen that matches a word you hear being said out loud. Your total expected time commitment for this study is between 5-30 minutes, and is specified in the study description.</p>
+      
+      <p>Your participation in this study is completely voluntary and you can withdraw at any time. Choosing not to participate or withdrawing will result in no penalty or loss of benefits to which you are entitled. You are free to skip any question that you choose.</p>
+      
+      <p>We will not be asking for any personally identifying information, and we will handle responses as confidentially as possible. Your SONA or Prolific IDs will never be tied to your responses on this survey. However, we cannot guarantee the confidentiality of information transmitted over the Internet. To minimize this risk, data containing anything that might be personally identifiable (e.g. Prolific IDs or IP addresses) will be encrypted on transfer and storage and will only be accessible to qualified lab personnel. We will be keeping data collected as part of this experiment indefinitely. This anonymized data (containing neither Prolific IDs nor IP addresses) may be shared with the scientific community or with other participants to be used as stimuli in future studies.</p>
+      
+      <p>If you have questions about this project or if you have a research-related problem, you may contact the researcher(s), <strong>Dr. Bria Long, <a href="mailto:brlong@ucsd.edu">brlong@ucsd.edu</a></strong>. If you have any questions concerning your rights as a research subject, you may contact the UC San Diego Office of IRB Administration at <a href="mailto:irb@ucsd.edu">irb@ucsd.edu</a> or 858-246-4777.</p>
+      
+      <h3 style="margin-top: 25px;">Consent Statement</h3>
+      <p style="font-weight: bold;">By participating in this research you are indicating that you are at least 18 years old, have read this consent form, and agree to participate in this research study. Please keep this consent form for your records.</p>
+    </div>
+  `,
+  choices: ['I Agree to Participate'],
+  data: {
+    // Add trial information for data tracking
+    trial_id: 'consent_form'
+  }
+};
+
+
 /* ---------- Trial: Choose Language ---------- */
 const lang_choice = {
   type: jsPsychHtmlButtonResponse,
@@ -411,8 +439,7 @@ const check_datapipe = {
   }
 };
 
-
-/* ---------- Helper function for Proficiency Select (NEW) ---------- */
+/* ---------- Helper function for Proficiency Select (FIXED: Moved to global scope) ---------- */
 function createProficiencySelect(name, required = true) {
   return `
       <select id="${name}" name="${name}" ${required ? 'required' : ''}>
@@ -426,7 +453,7 @@ function createProficiencySelect(name, required = true) {
   `;
 }
 
-/* ---------- Trial: Demographics Survey (NEW, FIX APPLIED) ---------- */
+/* ---------- Trial: Demographics Survey (FIXED) ---------- */
 const demographics_survey = {
   type: jsPsychSurveyHtmlForm,
   preamble: '<h2>Demographic Information</h2><p>Please answer the following questions. Your responses will remain confidential.</p>',
@@ -527,6 +554,7 @@ const debrief = {
 
 
 /* ---------- Experiment timeline ---------- */
+timeline.push(consent_form);      // <-- NEW: Consent form first
 timeline.push(lang_choice);
 timeline.push(start_screen);
 timeline.push(enter_fullscreen);
@@ -534,7 +562,7 @@ timeline.push(circleTrial);
 // diagnostic check (plugin presence and payload)
 timeline.push(check_datapipe);
 // Add the new demographics survey here
-timeline.push(demographics_survey); // <-- NEW DEMOGRAPHICS SURVEY
+timeline.push(demographics_survey); 
 // single CSV save to datapipe
 timeline.push(save_data);
 timeline.push(debrief);   
