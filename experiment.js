@@ -446,18 +446,229 @@ const debrief = {
     }
   }
 };
+* ---------- Demographic Questionnaire ---------- */
+const demographics = {
+  type: jsPsychSurveyHtmlForm,
+  preamble: `
+    <div style="max-width:700px; margin:0 auto;">
+      <h2>Demographic Information</h2>
+      <p>Please provide the following information. This data will be used for statistical purposes only and will be kept confidential.</p>
+    </div>
+  `,
+  html: `
+    <div style="max-width:700px; margin:0 auto;">
+      
+      <!-- Age -->
+      <div style="margin-bottom:20px;">
+        <label for="age" style="display:block; margin-bottom:5px; font-weight:bold;">
+          Age <span style="color:red;">*</span>
+        </label>
+        <input type="number" id="age" name="age" min="18" max="120" required 
+               style="width:100px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+      </div>
 
+      <!-- Gender -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">
+          Gender <span style="color:red;">*</span>
+        </label>
+        <select name="gender" required style="width:250px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+          <option value="">Please select</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="non-binary">Non-binary</option>
+          <option value="other">Other</option>
+          <option value="prefer-not-to-say">Prefer not to say</option>
+        </select>
+      </div>
+
+      <!-- Ethnicity -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">
+          Ethnicity <span style="color:red;">*</span>
+        </label>
+        <select name="ethnicity" required style="width:350px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+          <option value="">Please select</option>
+          <option value="asian">Asian / Asian American</option>
+          <option value="black">Black / African American</option>
+          <option value="hispanic">Hispanic / Latino/a/x</option>
+          <option value="middle-eastern">Middle Eastern / North African</option>
+          <option value="native-american">Native American / Alaska Native</option>
+          <option value="pacific-islander">Native Hawaiian / Pacific Islander</option>
+          <option value="white">White / Caucasian</option>
+          <option value="mixed">Mixed / Multiple ethnicities</option>
+          <option value="other">Other</option>
+          <option value="prefer-not-to-say">Prefer not to say</option>
+        </select>
+      </div>
+
+      <!-- Education Level -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">
+          Highest level of education completed <span style="color:red;">*</span>
+        </label>
+        <select name="education" required style="width:350px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+          <option value="">Please select</option>
+          <option value="less-than-high-school">Less than high school</option>
+          <option value="high-school">High school diploma or equivalent</option>
+          <option value="some-college">Some college, no degree</option>
+          <option value="associates">Associate's degree</option>
+          <option value="bachelors">Bachelor's degree</option>
+          <option value="masters">Master's degree</option>
+          <option value="doctorate">Doctorate degree</option>
+          <option value="professional">Professional degree (MD, JD, etc.)</option>
+        </select>
+      </div>
+
+      <!-- Languages Section -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:10px; font-weight:bold;">
+          Languages Spoken
+        </label>
+        <p style="margin-top:5px; font-size:14px; color:#666;">
+          Please list all languages you speak and your proficiency level for each.
+        </p>
+        
+        <!-- Primary Language -->
+        <div style="margin-bottom:15px; padding:15px; background:#f9f9f9; border-radius:4px;">
+          <label style="display:block; margin-bottom:5px; font-weight:bold;">
+            Primary/Native Language <span style="color:red;">*</span>
+          </label>
+          <input type="text" name="primary_language" placeholder="e.g., English, Mandarin, Spanish" 
+                 required style="width:300px; padding:5px; border:1px solid #ccc; border-radius:4px; margin-bottom:10px;">
+          
+          <label style="display:block; margin-bottom:5px;">Proficiency:</label>
+          <select name="primary_proficiency" required style="width:200px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+            <option value="native">Native speaker</option>
+            <option value="fluent">Fluent</option>
+            <option value="advanced">Advanced</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="beginner">Beginner</option>
+          </select>
+        </div>
+
+        <!-- Second Language (optional) -->
+        <div style="margin-bottom:15px; padding:15px; background:#f9f9f9; border-radius:4px;">
+          <label style="display:block; margin-bottom:5px; font-weight:bold;">
+            Second Language (optional)
+          </label>
+          <input type="text" name="second_language" placeholder="e.g., English, Mandarin, Spanish" 
+                 style="width:300px; padding:5px; border:1px solid #ccc; border-radius:4px; margin-bottom:10px;">
+          
+          <label style="display:block; margin-bottom:5px;">Proficiency:</label>
+          <select name="second_proficiency" style="width:200px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+            <option value="">Please select</option>
+            <option value="native">Native speaker</option>
+            <option value="fluent">Fluent</option>
+            <option value="advanced">Advanced</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="beginner">Beginner</option>
+          </select>
+        </div>
+
+        <!-- Third Language (optional) -->
+        <div style="margin-bottom:15px; padding:15px; background:#f9f9f9; border-radius:4px;">
+          <label style="display:block; margin-bottom:5px; font-weight:bold;">
+            Third Language (optional)
+          </label>
+          <input type="text" name="third_language" placeholder="e.g., English, Mandarin, Spanish" 
+                 style="width:300px; padding:5px; border:1px solid #ccc; border-radius:4px; margin-bottom:10px;">
+          
+          <label style="display:block; margin-bottom:5px;">Proficiency:</label>
+          <select name="third_proficiency" style="width:200px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+            <option value="">Please select</option>
+            <option value="native">Native speaker</option>
+            <option value="fluent">Fluent</option>
+            <option value="advanced">Advanced</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="beginner">Beginner</option>
+          </select>
+        </div>
+
+        <!-- Additional Languages -->
+        <div style="margin-bottom:15px;">
+          <label style="display:block; margin-bottom:5px;">
+            Other languages (optional)
+          </label>
+          <textarea name="other_languages" placeholder="Please list any additional languages and proficiency levels (e.g., French - Intermediate, Japanese - Beginner)"
+                    style="width:100%; height:60px; padding:5px; border:1px solid #ccc; border-radius:4px;"></textarea>
+        </div>
+      </div>
+
+      <!-- Language-specific questions for bilingual participants -->
+      <div style="margin-bottom:20px; padding:15px; background:#f0f8ff; border-radius:4px;">
+        <p style="font-weight:bold; margin-bottom:10px;">For bilingual/multilingual speakers:</p>
+        
+        <div style="margin-bottom:10px;">
+          <label style="display:block; margin-bottom:5px;">
+            At what age did you start learning your second language?
+          </label>
+          <input type="text" name="second_language_age" placeholder="e.g., 5, birth, 12" 
+                 style="width:150px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="display:block; margin-bottom:5px;">
+            Which language do you use most often in daily life?
+          </label>
+          <input type="text" name="dominant_language" placeholder="e.g., English, Both equally, Mandarin"
+                 style="width:300px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+      </div>
+
+      <p style="margin-top:20px; font-size:12px; color:#666;">
+        <span style="color:red;">*</span> Required fields
+      </p>
+    </div>
+  `,
+  button_label: 'Continue',
+  on_finish: function(data) {
+    // Process the language data to create a structured format
+    const response = data.response;
+    
+    // Create languages array
+    const languages = [];
+    if (response.primary_language) {
+      languages.push({
+        language: response.primary_language,
+        proficiency: response.primary_proficiency || 'not specified'
+      });
+    }
+    if (response.second_language) {
+      languages.push({
+        language: response.second_language,
+        proficiency: response.second_proficiency || 'not specified'
+      });
+    }
+    if (response.third_language) {
+      languages.push({
+        language: response.third_language,
+        proficiency: response.third_proficiency || 'not specified'
+      });
+    }
+    
+    // Add structured demographic data to jsPsych data
+    jsPsych.data.addProperties({
+      demographics_age: response.age,
+      demographics_gender: response.gender,
+      demographics_ethnicity: response.ethnicity,
+      demographics_education: response.education,
+      demographics_languages: JSON.stringify(languages),
+      demographics_other_languages: response.other_languages,
+      demographics_second_language_age: response.second_language_age,
+      demographics_dominant_language: response.dominant_language
+    });
+  }
+};
 
 /* ---------- Experiment timeline ---------- */
 timeline.push(lang_choice);
 timeline.push(start_screen);
 timeline.push(enter_fullscreen);
 timeline.push(circleTrial);
+timeline.push(demographics);  // Add demographics questionnaire here
 // diagnostic check (plugin presence and payload)
 timeline.push(check_datapipe);
 // single CSV save to datapipe
 timeline.push(save_data);
 timeline.push(debrief);   
-
-/* ---------- Run experiment ---------- */
-jsPsych.run(timeline);
