@@ -446,7 +446,8 @@ const debrief = {
     }
   }
 };
-* ---------- Demographic Questionnaire ---------- */
+
+/* ---------- Trial: Demographics questionnaire ---------- */
 const demographics = {
   type: jsPsychSurveyHtmlForm,
   preamble: `
