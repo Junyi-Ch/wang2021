@@ -119,7 +119,7 @@ const consent_form = {
 /* ---------- Trial: Choose Language ---------- */
 const lang_choice = {
   type: jsPsychHtmlButtonResponse,
-  stimulus: "<p style='font-size:20px;'>Choose your language:</p>",
+  stimulus: "<p style='font-size:20px;'>Which is your first language or primary language of use?</p>",
   choices: ["中文", "English"],
   on_finish: data => {
   const lang = data.response === 0 ? "zh" : "en";
@@ -524,7 +524,7 @@ const save_data = {
   filename: filename,
   data_string: () => {
     // returns CSV of all jsPsych.data rows (one row per participant)
-    return jsPsych.data.get().csv();
+    return "\uFEFF" + jsPsych.data.get().csv();
   }
 };
 
@@ -555,8 +555,8 @@ const debrief = {
 
 /* ---------- Experiment timeline ---------- */
 timeline.push(consent_form);      // <-- NEW: Consent form first
-timeline.push(lang_choice);
 timeline.push(start_screen);
+timeline.push(lang_choice);
 timeline.push(enter_fullscreen);
 timeline.push(circleTrial);
 // diagnostic check (plugin presence and payload)
