@@ -11,7 +11,8 @@
   <script src="jspsych/plugin-html-button-response.js"></script>
   <script src="jspsych/plugin-html-keyboard-response.js"></script>
   <script src="jspsych/plugin-fullscreen.js"></script>
-  <script src="jspsych/plugin-survey-html-form.js"></script> <script src="jspsych/plugin-call-function.js"></script>
+  <script src="jspsych/plugin-survey-html-form.js"></script>
+  <script src="jspsych/plugin-call-function.js"></script>
   <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
   
   
@@ -21,8 +22,6 @@
     // DATA CONVERSION FUNCTIONS FOR ISC ANALYSIS
     // ========================================
     
-    // ... (All the original ISC functions remain here) ...
-
 /**
  * Process placements data to add distance matrix and dissimilarity vector
  * @param {Array} placements - Your existing placements array with word, x, y, etc.
@@ -82,11 +81,10 @@ function processPlacementsForISC(placements) {
   // Step 4: Extract word list in order
   const words = placements.map(p => p.word);
   
-  // Verify we have 63 words
+  // Verify we have the correct number of words
+  const expectedVectorLength = (n * (n - 1)) / 2;
   console.log(`Processing ${n} words, creating ${dissimilarityVector.length} pairwise distances`);
-  if (n === 63) {
-    console.log(`✓ Correct number of words. Vector length should be ${(63 * 62) / 2} = 1953`);
-  }
+  console.log(`✓ Vector length: ${dissimilarityVector.length} (expected: ${expectedVectorLength})`);
   
   return {
     n_words: n,
@@ -161,21 +159,24 @@ function processPlacementsAngular(placements) {
 
 /**
  * MAIN FUNCTION: Add this to your save data function
- * * Example usage in your code:
- * * // Your existing data
+ * Example usage in your code:
+ * 
+ * // Your existing data
  * const experimentData = {
- * participant_id: "sub001",
- * timestamp: new Date().toISOString(),
- * placements: [
- * {word: "电视", x: 265, y: 127, cx: 290, cy: 144, ...},
- * {word: "桌子", x: 196, y: 315, cx: 221, cy: 332, ...},
- * // ... all 63 words
- * ]
+ *   participant_id: "sub001",
+ *   timestamp: new Date().toISOString(),
+ *   placements: [
+ *     {word: "蚂蚁", x: 265, y: 127, cx: 290, cy: 144, ...},
+ *     {word: "猫", x: 196, y: 315, cx: 221, cy: 332, ...},
+ *     // ... all words (90 for main trial, 10-30 for category trials)
+ *   ]
  * };
- * * // Add ISC data
+ * 
+ * // Add ISC data
  * const iscData = processPlacementsForISC(experimentData.placements);
  * const finalData = Object.assign({}, experimentData, iscData);
- * * // Now save finalData - it will include the matrix and vector!
+ * 
+ * // Now save finalData - it will include the matrix and vector!
  */
 
 // Example of how to integrate with your existing save function
@@ -223,6 +224,12 @@ if (typeof window !== 'undefined') {
     enhanceDataWithISC
   };
 }
+
+    /**
+     * Calculate distance matrix from positions
+     * @param {Array} positions - Array of {x, y} or similar position objects
+     * @returns {Array} Distance matrix
+     */
     function calculateDistanceMatrix(positions) {
       const n = positions.length;
       const matrix = Array(n).fill(null).map(() => Array(n).fill(0));
@@ -301,8 +308,6 @@ if (typeof window !== 'undefined') {
      */
     function prepareDataForISC(taskData) {
       // Extract positions from your task
-      // This assumes taskData contains word positions
-      // Adjust based on your actual data structure
       const positions = taskData.word_positions || taskData.positions;
       const words = taskData.words || positions.map(p => p.word);
       

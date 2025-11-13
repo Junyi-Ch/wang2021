@@ -1,0 +1,353 @@
+import pandas as pd
+import numpy as np
+import json
+import glob
+import os
+import argparse
+from scipy.spatial.distance import squareform
+from scipy.stats import percentileofscore
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
+
+# --- Constants ---
+N_WORDS = 90 # Your new word count
+N_TRIALS = 6 # Your new trial count
+JSON_COLUMN_NAME = 'dissimilarity_vector_json' # From your experiment.js
+
+def parse_col_range(col_str):
+    """Parses column strings like '2-10' or '3,4,5' into a list of indices."""
+    indices = []
+    if not col_str:
+        return indices
+    parts = col_str.split(',')
+    for part in parts:
+        if '-' in part:
+            start, end = part.split('-')
+            indices.extend(list(range(int(start), int(end) + 1)))
+        else:
+            indices.append(int(part))
+    # Convert from 1-based (Excel-style) to 0-based (pandas-style)
+    return [i - 1 for i in indices]
+
+def load_and_average_data(data_folder):
+    """
+    NEW PREPROCESSING STEP:
+    Loads all .csv files from a folder, finds all 6 trials for
+    each participant, and averages them into a single, stable RDM.
+    """
+    
+    # --- 1. Load all data into one big DataFrame ---
+    csv_files = glob.glob(os.path.join(data_folder, '*.csv'))
+    if not csv_files:
+        raise FileNotFoundError(f"No .csv files found in folder: {data_folder}")
+        
+    print(f"Found {len(csv_files)} total files. Reading into memory...")
+    all_data_df = pd.concat((pd.read_csv(f) for f in csv_files), ignore_index=True)
+    
+    # Filter for only the rows that have the data we need
+    data_df = all_data_df[all_data_df[JSON_COLUMN_NAME].notna()].copy()
+    
+    # Group by participant
+    grouped = data_df.groupby('participant_number')
+    print(f"Found {len(grouped)} unique participants in the data.")
+    
+    final_rdm_list = []
+    
+    # --- 2. Loop through each participant ---
+    for participant_id, rows in tqdm(grouped, desc="Averaging Participant Trials"):
+        
+        if len(rows) != N_TRIALS:
+            print(f"\nWarning: Participant {participant_id} has {len(rows)} trials, not {N_TRIALS}. Skipping.")
+            continue
+            
+        try:
+            participant_rdms = []
+            # --- 3. Load all 6 trials for this participant ---
+            for json_string in rows[JSON_COLUMN_NAME]:
+                vector = json.loads(json_string)
+                
+                # Check vector length
+                expected_length = (N_WORDS * (N_WORDS - 1)) // 2
+                if len(vector) != expected_length:
+                    raise ValueError(f"Incorrect vector length ({len(vector)}), expected {expected_length}")
+                
+                # Convert vector to full 90x90 matrix
+                rdm = squareform(vector)
+                participant_rdms.append(rdm)
+            
+            # --- 4. Average the 6 matrices ---
+            # Stack into a 3D array (6, 90, 90) and average along axis 0
+            avg_rdm = np.mean(np.array(participant_rdms), axis=0)
+            
+            # --- 5. Save the final averaged RDM ---
+            final_rdm_list.append(avg_rdm)
+            
+        except Exception as e:
+            print(f"\nError processing participant {participant_id}: {e}. Skipping.")
+            
+    if not final_rdm_list:
+        raise ValueError("No participants were successfully processed.")
+
+    print(f"\nSuccessfully processed and averaged {len(final_rdm_list)} participants.")
+    # --- 6. Return the final 3D array (n_subjects, 90, 90) ---
+    return np.array(final_rdm_list)
+
+def calculate_word_iscs(rdm_data, subject_indices):
+    """
+    Calculates the ISC for every word for a given set of subjects.
+    
+    rdm_data: (n_total_subjects, n_words, n_words)
+    subject_indices: (n_subjects_in_sample,) array of indices
+    """
+    n_subjects_in_sample = len(subject_indices)
+    if n_subjects_in_sample < 2:
+        return np.full(N_WORDS, np.nan) # Cannot run correlation
+
+    rdms = rdm_data[subject_indices, :, :]
+    isc_by_word = []
+
+    for word_idx in range(N_WORDS):
+        word_vectors = rdms[:, word_idx, :]
+        word_vectors = np.delete(word_vectors, word_idx, axis=1) # (n_subjects, 89)
+        word_vectors_t = word_vectors.T # (89, n_subjects)
+        
+        with np.errstate(divide='ignore', invalid='ignore'):
+            isc_matrix = np.corrcoef(word_vectors_t, rowvar=True)
+        
+        if n_subjects_in_sample > 1:
+            idx = np.tril_indices(n_subjects_in_sample, k=-1)
+            isc_vector = isc_matrix[idx]
+        else:
+            isc_vector = np.array([np.nan])
+
+        isc_vector_clipped = np.clip(isc_vector, -0.999999, 0.999999)
+        z_isc = np.arctanh(isc_vector_clipped)
+        z_isc_clean = z_isc[np.isfinite(z_isc)]
+        
+        mean_z_isc = np.mean(z_isc_clean) if len(z_isc_clean) > 0 else np.nan
+        isc_by_word.append(mean_z_isc)
+        
+    return np.array(isc_by_word)
+
+def get_bootstrap_stats(boot_results, n_bootstraps):
+    """Calculates stats from a bootstrap distribution."""
+    stats = {
+        'mean': np.nanmean(boot_results, axis=0),
+        'std_err': np.nanstd(boot_results, axis=0),
+        'ci_2.5': np.nanpercentile(boot_results, 2.5, axis=0),
+        'ci_97.5': np.nanpercentile(boot_results, 97.5, axis=0),
+        # One-sided p-value (how many samples are <= 0)
+        'p_value': (np.nansum(boot_results <= 0, axis=0) + 1) / (n_bootstraps + 1)
+    }
+    return stats
+
+def run_step1_subject_bootstrap(all_rdms, n_bootstraps):
+    """Replicates Step1_ISC_Pearson_sub_Bootstrap.m"""
+    print("\n--- Running Step 1: Subject Bootstrap ---")
+    n_subjects = all_rdms.shape[0]
+    
+    # Create all bootstrap indices at once
+    boot_indices = np.random.randint(0, n_subjects, size=(n_bootstraps, n_subjects))
+    
+    boot_results_per_word = []
+    
+    for i in tqdm(range(n_bootstraps), desc="Step 1 Bootstraps"):
+        isc_for_all_words = calculate_word_iscs(all_rdms, boot_indices[i])
+        boot_results_per_word.append(isc_for_all_words)
+    
+    # Shape: (n_bootstraps, 90_words)
+    boot_results_per_word = np.array(boot_results_per_word)
+    
+    # Get stats for each word
+    stats = get_bootstrap_stats(boot_results_per_word, n_bootstraps)
+    stats['word_index'] = np.arange(N_WORDS)
+    
+    return pd.DataFrame(stats)
+
+def run_step2_word_bootstrap(all_rdms, n_bootstraps):
+    """Replicates Step2_ISC_Pearson_word_Bootstrap.m"""
+    print("\n--- Running Step 2: Word Vector Bootstrap ---")
+    n_subjects = all_rdms.shape[0]
+    vec_dim = N_WORDS - 1 # This will be 89
+
+    # Create all bootstrap indices at once
+    # This matches: Words_89vec_boot_Mx = ceil(89 * rand(nBootstrap,89));
+    word_boot_indices = np.random.randint(0, vec_dim, size=(n_bootstraps, vec_dim))
+    
+    boot_results_per_word = []
+
+    for i in tqdm(range(n_bootstraps), desc="Step 2 Bootstraps"):
+        current_word_boot_idx = word_boot_indices[i]
+        isc_for_all_words = []
+        
+        for word_idx in range(N_WORDS):
+            word_vectors = all_rdms[:, word_idx, :]
+            word_vectors = np.delete(word_vectors, word_idx, axis=1)
+            
+            # Apply bootstrap to the word vector components
+            booted_word_vectors = word_vectors[:, current_word_boot_idx]
+            booted_word_vectors_t = booted_word_vectors.T
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                isc_matrix = np.corrcoef(booted_word_vectors_t, rowvar=True)
+            
+            idx = np.tril_indices(n_subjects, k=-1)
+            isc_vector = isc_matrix[idx]
+            isc_vector_clipped = np.clip(isc_vector, -0.999999, 0.999999)
+            z_isc = np.arctanh(isc_vector_clipped)
+            z_isc_clean = z_isc[np.isfinite(z_isc)]
+            
+            mean_z_isc = np.mean(z_isc_clean) if len(z_isc_clean) > 0 else np.nan
+            isc_for_all_words.append(mean_z_isc)
+            
+        boot_results_per_word.append(np.array(isc_for_all_words))
+        
+    # Shape: (n_bootstraps, 90_words)
+    boot_results_per_word = np.array(boot_results_per_word)
+    stats = get_bootstrap_stats(boot_results_per_word, n_bootstraps)
+    stats['word_index'] = np.arange(N_WORDS)
+    
+    return pd.DataFrame(stats)
+
+def run_step3_split_half(all_rdms, n_bootstraps, sem_data, all_cols_idx, sig_cols_idx):
+    """Replicates Step3_ISC_BaseWord_SplitHalf_linearRegression.m"""
+    print("\n--- Running Step 3: Split-Half Regression Bootstrap ---")
+    
+    if sem_data is None:
+        print("Warning: No semantic file provided. Skipping Step 3.")
+        return None, None
+        
+    if sem_data.shape[0] != N_WORDS:
+        raise ValueError(f"Semantic file has {sem_data.shape[0]} rows, but N_WORDS is {N_WORDS}. They must match.")
+
+    sem_dim_pc = sem_data.iloc[:, all_cols_idx]
+    sig_sem_dim = sem_data.iloc[:, sig_cols_idx]
+    
+    n_subjects = all_rdms.shape[0]
+    n_half = N_WORDS // 2 # This will be 45
+    
+    boot_betas = []
+    boot_corrs = []
+    scaler = StandardScaler()
+    model = LinearRegression()
+
+    for i in tqdm(range(n_bootstraps), desc="Step 3 Bootstraps"):
+        # This matches: WordNbr_randSampling = randperm(90);
+        perm = np.random.permutation(N_WORDS)
+        half1_idx = perm[:n_half] # First 45
+        half2_idx = perm[n_half:] # Second 45
+        
+        isc_split_half = []
+        
+        for word_idx in half1_idx:
+            # Get vector of distances from this word to all words in the *other* half
+            # This matches: vec_word_BaseWord = Mx_resample(wordno,[46:90]);
+            split_vectors = all_rdms[:, word_idx, half2_idx] # (n_subjects, 45)
+            split_vectors_t = split_vectors.T # (45, n_subjects)
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                isc_matrix = np.corrcoef(split_vectors_t, rowvar=True)
+            
+            idx = np.tril_indices(n_subjects, k=-1)
+            isc_vector = isc_matrix[idx]
+            isc_vector_clipped = np.clip(isc_vector, -0.999999, 0.999999)
+            z_isc = np.arctanh(isc_vector_clipped)
+            z_isc_clean = z_isc[np.isfinite(z_isc)]
+            
+            mean_z_isc = np.mean(z_isc_clean) if len(z_isc_clean) > 0 else np.nan
+            isc_split_half.append(mean_z_isc)
+            
+        isc_split_half = np.array(isc_split_half)
+        
+        # --- Run Analysis for this split ---
+        
+        # 1. Correlations
+        # This matches: Corr_BaseWord_SemDim_PC_temp = corr(...)
+        sem_dim_pc_sub = sem_dim_pc.iloc[half1_idx].values
+        combined_data = np.hstack((isc_split_half.reshape(-1, 1), sem_dim_pc_sub))
+        corr_matrix = np.corrcoef(combined_data, rowvar=False)
+        corrs = corr_matrix[0, 1:] 
+        boot_corrs.append(corrs)
+        
+        # 2. Standardized Regression
+        # This matches: mdl = LinearModel.fit(...)
+        X = sig_sem_dim.iloc[half1_idx].values
+        y = isc_split_half.reshape(-1, 1)
+        
+        X_std = scaler.fit_transform(X)
+        y_std = scaler.fit_transform(y)
+        
+        model.fit(X_std, y_std)
+        boot_betas.append(model.coef_[0])
+        
+    # --- Collate and Save Results ---
+    boot_corrs = np.array(boot_corrs)
+    boot_betas = np.array(boot_betas)
+    
+    corr_stats = get_bootstrap_stats(boot_corrs, n_bootstraps)
+    corr_stats['semantic_dimension'] = sem_dim_pc.columns
+    corr_df = pd.DataFrame(corr_stats)
+    
+    beta_stats = get_bootstrap_stats(boot_betas, n_bootstraps)
+    beta_stats['semantic_dimension'] = sig_sem_dim.columns
+    beta_df = pd.DataFrame(beta_stats)
+    
+    return corr_df, beta_df
+
+def main():
+    parser = argparse.ArgumentParser(description="Run 90-word ISC analysis on jsPsych word circle data.")
+    parser.add_argument('--data_folder', type=str, required=True, help="Folder containing all participant .csv files (with 6 trials each).")
+    parser.add_argument('--output_folder', type=str, required=True, help="Folder where result .csv files will be saved.")
+    parser.add_argument('--semantic_file', type=str, required=False, help="Path to the .xlsx file with 90 semantic dimensions (required for Step 3).")
+    parser.add_argument('--sem_all_cols', type=str, required=False, help="Columns for Step 3 correlations (e.g., '2-10' or '2,3,4'). 1-based index.")
+    parser.add_argument('--sem_sig_cols', type=str, required=False, help="Columns for Step 3 regression (e.g., '3,4,5'). 1-based index.")
+    parser.add_argument('--n_bootstraps', type=int, default=10000, help="Number of bootstrap iterations.")
+    
+    args = parser.parse_args()
+
+    # Create output folder
+    os.makedirs(args.output_folder, exist_ok=True)
+    
+    # --- 1. Load and Average Data (Preprocessing) ---
+    all_averaged_rdms = load_and_average_data(args.data_folder)
+    
+    # --- 2. Load Semantics ---
+    sem_data = None
+    all_cols_idx = []
+    sig_cols_idx = []
+    if args.semantic_file:
+        if not os.path.exists(args.semantic_file):
+            print(f"Warning: Semantic file not found at {args.semantic_file}. Skipping Step 3.")
+        else:
+            sem_data = pd.read_excel(args.semantic_file)
+            all_cols_idx = parse_col_range(args.sem_all_cols)
+            sig_cols_idx = parse_col_range(args.sem_sig_cols)
+            if not all_cols_idx or not sig_cols_idx:
+                print("Warning: --sem_all_cols and --sem_sig_cols must be provided for Step 3. Skipping Step 3.")
+                sem_data = None # Disable step 3
+    
+    # --- 3. Run Analyses ---
+    step1_results = run_step1_subject_bootstrap(all_averaged_rdms, args.n_bootstraps)
+    step1_path = os.path.join(args.output_folder, 'step1_subject_bootstrap_stats.csv')
+    step1_results.to_csv(step1_path, index=False)
+    print(f"\nStep 1 results saved to {step1_path}")
+
+    step2_results = run_step2_word_bootstrap(all_averaged_rdms, args.n_bootstraps)
+    step2_path = os.path.join(args.output_folder, 'step2_word_bootstrap_stats.csv')
+    step2_results.to_csv(step2_path, index=False)
+    print(f"\nStep 2 results saved to {step2_path}")
+
+    corr_results, beta_results = run_step3_split_half(all_averaged_rdms, args.n_bootstraps, sem_data, all_cols_idx, sig_cols_idx)
+    if corr_results is not None:
+        corr_path = os.path.join(args.output_folder, 'step3_correlation_stats.csv')
+        beta_path = os.path.join(args.output_folder, 'step3_regression_beta_stats.csv')
+        corr_results.to_csv(corr_path, index=False)
+        beta_results.to_csv(beta_path, index=False)
+        print(f"\nStep 3 correlation results saved to {corr_path}")
+        print(f"Step 3 regression results saved to {beta_path}")
+
+    print("\n--- Analysis Complete ---")
+
+if __name__ == "__main__":
+    main()
