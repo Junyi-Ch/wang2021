@@ -18,10 +18,10 @@
   
   <script defer src="experiment.js"></script>
   <script>
-    // ========================================
-    // DATA CONVERSION FUNCTIONS FOR ISC ANALYSIS
-    // ========================================
-    
+// This code was developed by Claude and in parallel with the jsPsych experiment code.
+// I told Claude that I need to implement this experiment and asked for a html file for running it online. 
+// I uploaded the original paper and the ISC code they had and asked Claude to generate the code that
+// would do the same task and calculation. 
 /**
  * Process placements data to add distance matrix and dissimilarity vector
  * @param {Array} placements - Your existing placements array with word, x, y, etc.
@@ -156,28 +156,6 @@ function processPlacementsAngular(placements) {
     distance_metric: 'angular'
   };
 }
-
-/**
- * MAIN FUNCTION: Add this to your save data function
- * Example usage in your code:
- * 
- * // Your existing data
- * const experimentData = {
- *   participant_id: "sub001",
- *   timestamp: new Date().toISOString(),
- *   placements: [
- *     {word: "蚂蚁", x: 265, y: 127, cx: 290, cy: 144, ...},
- *     {word: "猫", x: 196, y: 315, cx: 221, cy: 332, ...},
- *     // ... all words (90 for main trial, 10-30 for category trials)
- *   ]
- * };
- * 
- * // Add ISC data
- * const iscData = processPlacementsForISC(experimentData.placements);
- * const finalData = Object.assign({}, experimentData, iscData);
- * 
- * // Now save finalData - it will include the matrix and vector!
- */
 
 // Example of how to integrate with your existing save function
 function enhanceDataWithISC(originalData) {
@@ -379,19 +357,6 @@ if (typeof window !== 'undefined') {
       // Option 2: Save to localStorage
       localStorage.setItem(`isc_data_${iscData.participant_id}`, JSON.stringify(iscData));
       
-      // Option 3: Send to server (uncomment and configure as needed)
-      /*
-      fetch('/save-isc-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(iscData)
-      })
-      .then(response => response.json())
-      .then(result => console.log('Data saved:', result))
-      .catch(error => console.error('Error saving data:', error));
-      */
       
       return iscData;
     }
