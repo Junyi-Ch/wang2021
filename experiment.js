@@ -181,7 +181,17 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       align-items: center;
       justify-content: center;
       gap: 20px;
+      user-select: none;
+
     }
+
+    #task-wrapper * {
+
+      -webkit-user-drag: none;
+
+      user-select: none;
+    }
+
     #word-container { 
       display: flex; 
       justify-content: center; 
@@ -218,6 +228,8 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       font-size: 14px;
       white-space: nowrap;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+      -webkit-user-drag: element;
     }
     .word:active {
       cursor: grabbing;
@@ -248,9 +260,9 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       background: #45a049;
     }
   </style>
-  <div id="task-wrapper">
-    <div id="word-container">
-      <div id="drop-zone"></div>`;
+  <div id="task-wrapper" draggable="false">
+  <div id="word-container" draggable="false">
+  <div id="drop-zone" draggable="false"></div>`;
 
   words.forEach((word, i) => {
     const angle = (2 * Math.PI * i) / words.length;
@@ -395,15 +407,45 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
       const dropZone = document.getElementById('drop-zone');
       const words = document.querySelectorAll('.word');
       const finishBtn = document.getElementById('finish-btn');
+      const container = document.getElementById('word-container');
+      const taskWrapper = document.getElementById('task-wrapper');
 
       let draggedWord = null;
       let moved = new Set();
 
-      const container = document.getElementById('word-container');
-      
+           // Prevent dragging of container and other elements
+
+      [container, dropZone, taskWrapper].forEach(element => {
+        if (element) {
+          element.draggable = false;
+          element.addEventListener('dragstart', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          });
+        }
+      });
+
+      // Prevent default drag behavior on the whole document during this trial
+
+      const preventDefaultDrag = (e) => {
+        if (!e.target.classList.contains('word')) {
+          e.preventDefault();
+          return false;
+        }
+      };
+
+      document.addEventListener('dragstart', preventDefaultDrag, true);
+      // Clean up when trial ends
+      const cleanup = () => {
+        document.removeEventListener('dragstart', preventDefaultDrag, true);
+      };
+        
       // Drag start
       words.forEach(word => {
+        word.draggable = true;
         word.addEventListener('dragstart', e => {
+          e.stopPropagation(); 
           draggedWord = word;
           word.classList.add('dragging');
           dropZone.classList.add('drop-zone-active');
@@ -412,6 +454,7 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         });
         
         word.addEventListener('dragend', e => {
+          e.stopPropagation(); 
           word.classList.remove('dragging');
           dropZone.classList.remove('drop-zone-active');
           draggedWord = null;
@@ -420,12 +463,14 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
 
       // Allow dragover on container
       container.addEventListener('dragover', e => {
+        e.stopPropagation();
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
       });
 
       // Handle drops on container
       container.addEventListener('drop', e => {
+        e.stopPropagation();
         e.preventDefault();
         if (!draggedWord) return;
 
@@ -518,6 +563,7 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         jsPsych.data.get().last(1).values()[0].dissimilarity_vector = iscData.dissimilarity_vector;
         jsPsych.data.get().last(1).values()[0].n_words = iscData.n_words;
 
+        cleanup();
         jsPsych.finishTrial({
           placements: iscData.placements,
           dissimilarity_vector: iscData.dissimilarity_vector,
