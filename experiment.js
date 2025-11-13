@@ -165,11 +165,23 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
   // Wrap in container for centering
   let html = `
   <style>
+    .jspsych-content-wrapper {
+      background: transparent !important;
+    }
+    .jspsych-content {
+      background: transparent !important;
+    }
+    #task-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
     #word-container { 
       display: flex; 
       justify-content: center; 
       align-items: center;
-      margin: 20px auto;
       width: ${containerSize}px;
       height: ${containerSize}px;
       position: relative;
@@ -184,6 +196,7 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       border-radius: 50%; 
       border: 5px solid #444; 
       box-sizing: border-box; 
+      background: white;
     }
     /* active state when a draggable is over the circle */
     #drop-zone.drop-zone-active { 
@@ -200,20 +213,36 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       user-select: none; 
       font-size: 14px;
       white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .word.dragging { 
       opacity: 0.6; 
       z-index: 1000;
     }
     #controls {
-      position: absolute;
-      bottom: -60px;
-      left: 50%;
-      transform: translateX(-50%);
+      text-align: center;
+      margin-top: 10px;
+    }
+    #finish-btn {
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #finish-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #finish-btn:not(:disabled):hover {
+      background: #45a049;
     }
   </style>
-  <div id="word-container">
-    <div id="drop-zone"></div>`;
+  <div id="task-wrapper">
+    <div id="word-container">
+      <div id="drop-zone"></div>`;
 
   words.forEach((word, i) => {
     const angle = (2 * Math.PI * i) / words.length;
@@ -223,11 +252,12 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
     html += `<div class="word" draggable="true" style="left:${x}px; top:${y}px;">${word}</div>`;
   });
 
-  // add a control area
-  html += '<div id="controls">' +
+  // add controls OUTSIDE the word-container
+  html += '</div>' + // close word-container
+          '<div id="controls">' +
             '<button id="finish-btn" disabled>Finished arranging</button>' +
           '</div>' +
-          '</div>';
+          '</div>'; // close task-wrapper
   return html;
 }
 
@@ -338,7 +368,7 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
       
       let instruction = "";
       if (instructionText) {
-        instruction = `<div style="text-align:center; margin-bottom:15px; font-size:18px;"><strong>${instructionText}</strong></div>`;
+        instruction = `<div style="text-align:center; margin-bottom:20px; font-size:18px; font-weight:bold; color:#333;">${instructionText}</div>`;
       }
       
       return instruction + generateWordCircleHTML(wordsToUse, circleSize, containerSize);
