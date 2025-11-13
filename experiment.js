@@ -132,53 +132,102 @@ function getWordsByLanguage(lang, wordList = bilingual_words) {
   return wordList.map(w => w[lang]);
 }
 
-function generateWordCircleHTML(words, circleSize = 900) {
-  // Adjust radius based on number of words to prevent overlap
-  // For 90 words: larger circle needed
-  // For 10-30 words: can use smaller relative radius
+function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
+  // dropZoneSize is the size of the circle where words can be dropped
+  // containerSize is the total container that includes space for words outside the circle
   const dropZoneSize = circleSize;
   const numWords = words.length;
   
-  // Scale radius based on number of words
-  // For 90 words: use 80% of circle
-  // For fewer words: can be slightly larger percentage
-  let radiusPercentage = 0.80;
-  if (numWords <= 20) {
-    radiusPercentage = 0.82;
-  } else if (numWords <= 40) {
-    radiusPercentage = 0.81;
+  // If no container size specified, calculate it to fit words outside circle
+  if (!containerSize) {
+    // Add space for words placed outside + word width/height
+    containerSize = dropZoneSize + 160; // Extra space for words outside
   }
   
-  const radius = (dropZoneSize / 2) * radiusPercentage;
-  const centerX = dropZoneSize / 2;
-  const centerY = dropZoneSize / 2;
+  // Circle center is at center of container
+  const centerX = containerSize / 2;
+  const centerY = containerSize / 2;
+  
+  // Circle radius (from center to edge of the drop zone circle)
+  const circleRadius = dropZoneSize / 2;
+  
+  // Place words OUTSIDE the circle - further out for more words
+  // Words should be just outside the circle edge, aligned with it
+  let wordPlacementRadius;
+  if (numWords <= 15) {
+    wordPlacementRadius = circleRadius + 70; // 70px outside circle
+  } else if (numWords <= 30) {
+    wordPlacementRadius = circleRadius + 75; // 75px outside circle
+  } else {
+    wordPlacementRadius = circleRadius + 80; // 80px outside circle for 90 words
+  }
 
   // Wrap in container for centering
-  // include minimal CSS for the drop zone and words so we can change the drop-zone style
   let html = `
   <style>
-    #word-container { display:flex; justify-content:center; margin:20px 0; }
-    #drop-zone { position: relative; width:${dropZoneSize}px; height:${dropZoneSize}px; border-radius:50%; border:5px solid #444; box-sizing:border-box; }
+    #word-container { 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      margin: 20px auto;
+      width: ${containerSize}px;
+      height: ${containerSize}px;
+      position: relative;
+    }
+    #drop-zone { 
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: ${dropZoneSize}px; 
+      height: ${dropZoneSize}px; 
+      border-radius: 50%; 
+      border: 5px solid #444; 
+      box-sizing: border-box; 
+    }
     /* active state when a draggable is over the circle */
-    #drop-zone.drop-zone-active { border-color: #0a0; box-shadow: 0 0 0 10px rgba(0,150,0,0.15); }
-    .word { position: absolute; transform: translate(-50%, -50%); cursor: grab; padding:6px 10px; background:#f2f2f2; border-radius:6px; user-select:none; font-size: 14px; }
-    .word.dragging { opacity:0.6; }
+    #drop-zone.drop-zone-active { 
+      border-color: #0a0; 
+      box-shadow: 0 0 0 10px rgba(0,150,0,0.15); 
+    }
+    .word { 
+      position: absolute; 
+      transform: translate(-50%, -50%); 
+      cursor: grab; 
+      padding: 6px 10px; 
+      background: #f2f2f2; 
+      border-radius: 6px; 
+      user-select: none; 
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .word.dragging { 
+      opacity: 0.6; 
+      z-index: 1000;
+    }
+    #controls {
+      position: absolute;
+      bottom: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
   </style>
-  <div id="word-container"><div id="drop-zone">`;
+  <div id="word-container">
+    <div id="drop-zone"></div>`;
 
   words.forEach((word, i) => {
     const angle = (2 * Math.PI * i) / words.length;
-    const x = centerX + radius * Math.cos(angle);
-    const y = centerY + radius * Math.sin(angle);
+    const x = centerX + wordPlacementRadius * Math.cos(angle);
+    const y = centerY + wordPlacementRadius * Math.sin(angle);
 
     html += `<div class="word" draggable="true" style="left:${x}px; top:${y}px;">${word}</div>`;
   });
 
-  // add a control area (we'll position it with CSS so it doesn't overlap the circle)
-  html += '</div>' +
-          '<div id="controls">' +
+  // add a control area
+  html += '<div id="controls">' +
             '<button id="finish-btn" disabled>Finished arranging</button>' +
-          '</div></div>';
+          '</div>' +
+          '</div>';
   return html;
 }
 
@@ -235,12 +284,13 @@ const start_screen = {
       <div style="max-width:900px; margin:0 auto; text-align:center;">
         <h1 style= "font-size: 24px;">Welcome! Thank you for participating in the study.</h1>
         <p style="font-size:18px; line-height:1.6;">
-          In this task, you will be presented with <strong>90 words</strong> arranged in a circle.<br>
-          Your job is to <strong>drag and rearrange these words</strong> based on their <strong>meaning similarity</strong>.<br><br>
+          In this task, you will be presented with <strong>90 words</strong> arranged <strong>outside a circle</strong>.<br>
+          Your job is to <strong>drag these words into the circle</strong> and <strong>rearrange them</strong> based on their <strong>meaning similarity</strong>.<br><br>
           Words that are <strong>similar in meaning</strong> should be placed <strong>closer together</strong>.<br>
           Words that are <strong>different in meaning</strong> should be placed <strong>farther apart</strong>.<br><br>
           You can place the words <strong>anywhere inside the circle</strong>. There is no single correct answer — 
           we are interested in <strong>your personal judgment</strong> of how these words relate to each other.<br><br>
+          <strong>You must move all words into the circle before you can finish.</strong><br>
           After the initial arrangement, you will arrange words from specific categories.
         </p>
         <p style="font-size:16px; margin-top:30px;"><em>Press any key to continue.</em></p>
@@ -265,12 +315,25 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
       const lang = jsPsych.data.get().last(1).values()[0].language || "zh";
       const wordsToUse = getWordsByLanguage(lang, words);
       
-      // Determine circle size based on number of words
-      let circleSize = 900; // default for all 90 words
+      // Determine circle size and container size based on number of words
+      let circleSize, containerSize;
+      
       if (wordsToUse.length <= 15) {
+        // Small trials: 10-15 words
+        circleSize = 500;
+        containerSize = 660; // 500 + 160 for words outside
+      } else if (wordsToUse.length <= 25) {
+        // Medium trials: 16-25 words  
         circleSize = 600;
-      } else if (wordsToUse.length <= 30) {
-        circleSize = 750;
+        containerSize = 760;
+      } else if (wordsToUse.length <= 40) {
+        // Large trials: 26-40 words
+        circleSize = 700;
+        containerSize = 860;
+      } else {
+        // Extra large trials: 90 words
+        circleSize = 700; // Keep it manageable
+        containerSize = 860; // Total with words outside
       }
       
       let instruction = "";
@@ -278,7 +341,7 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         instruction = `<div style="text-align:center; margin-bottom:15px; font-size:18px;"><strong>${instructionText}</strong></div>`;
       }
       
-      return instruction + generateWordCircleHTML(wordsToUse, circleSize);
+      return instruction + generateWordCircleHTML(wordsToUse, circleSize, containerSize);
     },
     choices: "NO_KEYS",
     trial_duration: null,
@@ -320,23 +383,31 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         e.preventDefault();
         if (!draggedWord) return;
 
-        const rect = dropZone.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Get positions relative to the drop zone (circle)
+        const dzRect = dropZone.getBoundingClientRect();
+        const x_relative_to_dropzone = e.clientX - dzRect.left;
+        const y_relative_to_dropzone = e.clientY - dzRect.top;
 
-        const centerX = dropZone.offsetWidth / 2;
-        const centerY = dropZone.offsetHeight / 2;
-        const dx = x - centerX;
-        const dy = y - centerY;
+        // Check if drop is within circle
+        const centerX_dropzone = dropZone.offsetWidth / 2;
+        const centerY_dropzone = dropZone.offsetHeight / 2;
+        const dx = x_relative_to_dropzone - centerX_dropzone;
+        const dy = y_relative_to_dropzone - centerY_dropzone;
         const distFromCenter = Math.sqrt(dx*dx + dy*dy);
-        const maxRadius = (dropZone.offsetWidth / 2);
+        const maxRadius = dropZone.offsetWidth / 2;
 
         if (distFromCenter > maxRadius) {
-          return;
+          return; // Outside circle, don't allow drop
         }
 
-        draggedWord.style.left = x + 'px';
-        draggedWord.style.top = y + 'px';
+        // Convert to word-container coordinates
+        const containerRect = document.getElementById('word-container').getBoundingClientRect();
+        const x_relative_to_container = e.clientX - containerRect.left;
+        const y_relative_to_container = e.clientY - containerRect.top;
+
+        // Set word position relative to container
+        draggedWord.style.left = x_relative_to_container + 'px';
+        draggedWord.style.top = y_relative_to_container + 'px';
         moved.add(draggedWord);
 
         if (moved.size === words.length) {
@@ -351,13 +422,19 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
 
         words.forEach(wordEl => {
           const text = wordEl.textContent;
-          const x = parseFloat(wordEl.style.left);
-          const y = parseFloat(wordEl.style.top);
-
+          
+          // Get word's bounding box
           const rect = wordEl.getBoundingClientRect();
           const dzRect = dropZone.getBoundingClientRect();
+          const containerRect = document.getElementById('word-container').getBoundingClientRect();
+          
+          // Calculate center position relative to drop zone (circle)
           const cx = rect.left + rect.width/2 - dzRect.left;
           const cy = rect.top + rect.height/2 - dzRect.top;
+          
+          // Calculate top-left position relative to drop zone
+          const x_relative_dropzone = rect.left - dzRect.left;
+          const y_relative_dropzone = rect.top - dzRect.top;
 
           const centerX = dropZone.offsetWidth / 2;
           const centerY = dropZone.offsetHeight / 2;
@@ -368,8 +445,8 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
 
           placements.push({
             word: text,
-            x: Math.round(x * 10) / 10,
-            y: Math.round(y * 10) / 10,
+            x: Math.round(x_relative_dropzone * 10) / 10,
+            y: Math.round(y_relative_dropzone * 10) / 10,
             cx: Math.round(cx * 10) / 10,
             cy: Math.round(cy * 10) / 10,
             angle_rad: Math.round(angle_rad * 1000) / 1000,
