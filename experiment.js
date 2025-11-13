@@ -185,6 +185,7 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       width: ${containerSize}px;
       height: ${containerSize}px;
       position: relative;
+      pointer-events: auto;
     }
     #drop-zone { 
       position: absolute;
@@ -197,6 +198,7 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       border: 5px solid #444; 
       box-sizing: border-box; 
       background: white;
+      pointer-events: auto;
     }
     /* active state when a draggable is over the circle */
     #drop-zone.drop-zone-active { 
@@ -214,10 +216,19 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       font-size: 14px;
       white-space: nowrap;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      pointer-events: auto;
+    }
+    .word:active {
+      cursor: grabbing;
     }
     .word.dragging { 
       opacity: 0.6; 
       z-index: 1000;
+      pointer-events: none;
+      cursor: grabbing;
+    }
+    .word:not(.dragging) {
+      pointer-events: auto;
     }
     #controls {
       text-align: center;
@@ -388,6 +399,13 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
       let draggedWord = null;
       let moved = new Set();
 
+      const container = document.getElementById('word-container');
+      
+      // Store offset for smoother dragging
+      let offsetX = 0;
+      let offsetY = 0;
+      let dropHandled = false;
+
       // Drag start
       words.forEach(word => {
         word.addEventListener('dragstart', e => {
@@ -395,45 +413,76 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
           word.classList.add('dragging');
           dropZone.classList.add('drop-zone-active');
           e.dataTransfer.effectAllowed = 'move';
+          dropHandled = false;
+          
+          // Calculate offset from word center to mouse position
+          const rect = word.getBoundingClientRect();
+          offsetX = e.clientX - (rect.left + rect.width / 2);
+          offsetY = e.clientY - (rect.top + rect.height / 2);
         });
-        word.addEventListener('dragend', () => {
+        
+        word.addEventListener('dragend', e => {
           word.classList.remove('dragging');
           dropZone.classList.remove('drop-zone-active');
           draggedWord = null;
+          dropHandled = false;
         });
       });
 
-      // Drop zone events
+      // Allow dragover on both container and drop zone
+      container.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+
       dropZone.addEventListener('dragover', e => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
       });
 
+      // Handle drops on container
+      container.addEventListener('drop', e => {
+        e.preventDefault();
+        handleDrop(e);
+      });
+
+      // Handle drops on drop zone
       dropZone.addEventListener('drop', e => {
         e.preventDefault();
-        if (!draggedWord) return;
+        handleDrop(e);
+      });
+
+      // Unified drop handler
+      function handleDrop(e) {
+        if (!draggedWord || dropHandled) return;
+        dropHandled = true;
+
+        // Get mouse position
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
 
         // Get positions relative to the drop zone (circle)
         const dzRect = dropZone.getBoundingClientRect();
-        const x_relative_to_dropzone = e.clientX - dzRect.left;
-        const y_relative_to_dropzone = e.clientY - dzRect.top;
+        const x_relative_to_dropzone = mouseX - dzRect.left;
+        const y_relative_to_dropzone = mouseY - dzRect.top;
 
         // Check if drop is within circle
         const centerX_dropzone = dropZone.offsetWidth / 2;
         const centerY_dropzone = dropZone.offsetHeight / 2;
         const dx = x_relative_to_dropzone - centerX_dropzone;
         const dy = y_relative_to_dropzone - centerY_dropzone;
-        const distFromCenter = Math.sqrt(dx*dx + dy*dy);
+        const distFromCenter = Math.sqrt(dx * dx + dy * dy);
         const maxRadius = dropZone.offsetWidth / 2;
 
         if (distFromCenter > maxRadius) {
+          dropHandled = false;
           return; // Outside circle, don't allow drop
         }
 
-        // Convert to word-container coordinates
-        const containerRect = document.getElementById('word-container').getBoundingClientRect();
-        const x_relative_to_container = e.clientX - containerRect.left;
-        const y_relative_to_container = e.clientY - containerRect.top;
+        // Convert to word-container coordinates (accounting for offset)
+        const containerRect = container.getBoundingClientRect();
+        const x_relative_to_container = mouseX - containerRect.left - offsetX;
+        const y_relative_to_container = mouseY - containerRect.top - offsetY;
 
         // Set word position relative to container
         draggedWord.style.left = x_relative_to_container + 'px';
@@ -443,7 +492,7 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         if (moved.size === words.length) {
           finishBtn.disabled = false;
         }
-      });
+      }
 
       // Calculate final positions and metadata
       finishBtn.addEventListener('click', () => {
