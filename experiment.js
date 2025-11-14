@@ -181,15 +181,6 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       align-items: center;
       justify-content: center;
       gap: 20px;
-      user-select: none;
-
-    }
-
-    #task-wrapper * {
-
-      -webkit-user-drag: none;
-
-      user-select: none;
     }
 
     #word-container { 
@@ -199,8 +190,8 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       width: ${containerSize}px;
       height: ${containerSize}px;
       position: relative;
-      -webkit-user-drag: none;
     }
+
     #drop-zone { 
       position: absolute;
       left: 50%;
@@ -212,7 +203,6 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       border: 5px solid #444; 
       box-sizing: border-box; 
       background: white;
-      -webkit-user-drag: none;
     }
     /* active state when a draggable is over the circle */
     #drop-zone.drop-zone-active { 
@@ -413,39 +403,15 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
       let draggedWord = null;
       let moved = new Set();
 
-           // Prevent dragging of container and other elements
+      words.forEach(word => {
 
-      [container, dropZone, taskWrapper].forEach(element => {
-        if (element) {
-          element.draggable = false;
-          element.addEventListener('dragstart', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          });
-        }
+        word.draggable = true;
       });
 
-      // Prevent default drag behavior on the whole document during this trial
-
-      const preventDefaultDrag = (e) => {
-        if (!e.target.classList.contains('word')) {
-          e.preventDefault();
-          return false;
-        }
-      };
-
-      document.addEventListener('dragstart', preventDefaultDrag, true);
-      // Clean up when trial ends
-      const cleanup = () => {
-        document.removeEventListener('dragstart', preventDefaultDrag, true);
-      };
         
       // Drag start
       words.forEach(word => {
-        word.draggable = true;
         word.addEventListener('dragstart', e => {
-          e.stopPropagation(); 
           draggedWord = word;
           word.classList.add('dragging');
           dropZone.classList.add('drop-zone-active');
@@ -454,7 +420,6 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         });
         
         word.addEventListener('dragend', e => {
-          e.stopPropagation(); 
           word.classList.remove('dragging');
           dropZone.classList.remove('drop-zone-active');
           draggedWord = null;
@@ -463,15 +428,15 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
 
       // Allow dragover on container
       container.addEventListener('dragover', e => {
-        e.stopPropagation();
         e.preventDefault();
+        e.stopPropagation();
         e.dataTransfer.dropEffect = 'move';
       });
 
       // Handle drops on container
       container.addEventListener('drop', e => {
-        e.stopPropagation();
         e.preventDefault();
+        e.stopPropagation();
         if (!draggedWord) return;
 
         // Get mouse position
@@ -563,7 +528,7 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
         jsPsych.data.get().last(1).values()[0].dissimilarity_vector = iscData.dissimilarity_vector;
         jsPsych.data.get().last(1).values()[0].n_words = iscData.n_words;
 
-        cleanup();
+
         jsPsych.finishTrial({
           placements: iscData.placements,
           dissimilarity_vector: iscData.dissimilarity_vector,
