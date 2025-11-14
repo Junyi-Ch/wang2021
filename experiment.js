@@ -213,7 +213,7 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       position: absolute; 
       transform: translate(-50%, -50%); 
       cursor: grab; 
-      padding: 6px 10px; 
+      padding: 2px 4px; 
       background: #f2f2f2; 
       border-radius: 6px; 
       user-select: none; 
