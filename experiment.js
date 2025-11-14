@@ -548,31 +548,31 @@ const circleTrial = createCircleTrial(bilingual_words, "all_words");
 const animalsTrial = createCircleTrial(
   word_categories.animals, 
   "animals",
-  "Now arrange only the ANIMAL words by meaning similarity"
+  "Now arrange these words using the same method."
 );
 
 const bodyPartsTrial = createCircleTrial(
   word_categories.body_parts,
   "body_parts",
-  "Now arrange only the BODY PART words by meaning similarity"
+  "Now arrange these words using the same method."
 );
 
 const artifactsTrial = createCircleTrial(
   word_categories.artifacts,
   "artifacts",
-  "Now arrange only the ARTIFACT words by meaning similarity"
+  "Now arrange these words using the same method."
 );
 
 const emotionalTrial = createCircleTrial(
   word_categories.emotional_nonobject,
   "emotional_nonobject",
-  "Now arrange only the EMOTIONAL NON-OBJECT words by meaning similarity"
+  "Now arrange these words using the same method."
 );
 
 const nonemotionalTrial = createCircleTrial(
   word_categories.nonemotional_nonobject,
   "nonemotional_nonobject",
-  "Now arrange only the NON-EMOTIONAL NON-OBJECT words by meaning similarity"
+  "Now arrange these words using the same method."
 );
 
 /* ---------- DataPipe check ---------- */
@@ -694,7 +694,7 @@ const debrief = {
       <p>Thank you for participating in our study!
       <p> This research investigates how people mentally organize word meanings — in other words, how individuals represent and connect concepts in their "semantic networks." We are especially interested in whether there are consistent individual differences in how people group words based on meaning, and whether these differences depend on the type of word — for example, whether the words refer to concrete things (like apple or chair) or to more abstract ideas (like justice or freedom).
       By examining patterns across participants, we aim to better understand how people's mental representations of language vary and what factors might shape those differences. This work may ultimately contribute to our understanding of how experience, culture, and cognition influence the way we structure meaning.
-      If you have any questions about the study, please contact the research team at [insert your lab or PI's email address].</p>
+      If you have any questions about the study, please contact the research team at apc003@ucsd.edu.</p>
       <p>Thank you again for your time and contribution!</p>
       <p>If you have any questions about the study please contact the experimenter.</p>
     </div>
