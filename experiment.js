@@ -542,37 +542,45 @@ function createCircleTrial(words, trialCategory = "all_words", instructionText =
 }
 
 /* ---------- Main trial: All 90 words ---------- */
-const circleTrial = createCircleTrial(bilingual_words, "all_words");
+const circleTrial = createCircleTrial(
+  bilingual_words, 
+  "all_words",
+  "Please think carefully about the meanings of the words as you arrange them and accurately reflect their relationships.");
 
 /* ---------- Category trials ---------- */
 const animalsTrial = createCircleTrial(
   word_categories.animals, 
   "animals",
-  "Now arrange these words using the same method."
+  "Now arrange these words using the same method.",
+  "Please think carefully about the meanings of the words as you arrange them and accurately reflect their relationships."
 );
 
 const bodyPartsTrial = createCircleTrial(
   word_categories.body_parts,
   "body_parts",
-  "Now arrange these words using the same method."
+  "Now arrange these words using the same method.",
+  "Please think carefully about the meanings of the words as you arrange them and accurately reflect their relationships."
 );
 
 const artifactsTrial = createCircleTrial(
   word_categories.artifacts,
   "artifacts",
-  "Now arrange these words using the same method."
+  "Now arrange these words using the same method.",
+  "Please think carefully about the meanings of the words as you arrange them and accurately reflect their relationships."
 );
 
 const emotionalTrial = createCircleTrial(
   word_categories.emotional_nonobject,
   "emotional_nonobject",
-  "Now arrange these words using the same method."
+  "Now arrange these words using the same method.",
+  "Please think carefully about the meanings of the words as you arrange them and accurately reflect their relationships."
 );
 
 const nonemotionalTrial = createCircleTrial(
   word_categories.nonemotional_nonobject,
   "nonemotional_nonobject",
-  "Now arrange these words using the same method."
+  "Now arrange these words using the same method.",
+  "Please think carefully about the meanings of the words as you arrange them and accurately reflect their relationships."
 );
 
 /* ---------- DataPipe check ---------- */
