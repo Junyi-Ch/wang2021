@@ -199,6 +199,7 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       width: ${containerSize}px;
       height: ${containerSize}px;
       position: relative;
+      -webkit-user-drag: none;
     }
     #drop-zone { 
       position: absolute;
@@ -211,6 +212,7 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       border: 5px solid #444; 
       box-sizing: border-box; 
       background: white;
+      -webkit-user-drag: none;
     }
     /* active state when a draggable is over the circle */
     #drop-zone.drop-zone-active { 
@@ -228,8 +230,6 @@ function generateWordCircleHTML(words, circleSize = 700, containerSize = null) {
       font-size: 14px;
       white-space: nowrap;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
-      -webkit-user-drag: element;
     }
     .word:active {
       cursor: grabbing;
