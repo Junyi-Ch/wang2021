@@ -397,6 +397,9 @@ const start_screen = {
     <div style="display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
       <div style="max-width:900px; margin:0 auto; text-align:center;">
         <h1 style= "font-size: 24px;">Welcome! Thank you for participating in the study.</h1>
+        <h2 style= "font-size: 22px;">The study will be in Madarin Chinese.</h2>
+        <h2 style= "font-size: 22px;">Please use desktop computers or laptops for the study. Tablets and phones are not allowed.</h2>
+        
         <p style="font-size:18px; line-height:1.6;">
           In this task, you will be presented with <strong>90 words</strong> arranged <strong>outside a circle</strong>.<br>
           Your job is to <strong>drag these words into the circle</strong> and <strong>rearrange them</strong> based on their <strong>meaning similarity</strong>.<br><br>
