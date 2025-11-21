@@ -389,8 +389,6 @@ const consent_form = {
 
   // Add to global jsPsych properties so it appears on all trials
   jsPsych.data.addProperties({ participant_number: window.participantNumber });
-  }
-};
 
 /* ---------- Instructions ---------- */
 const start_screen = {
