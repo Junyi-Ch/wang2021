@@ -122,6 +122,7 @@ const bilingual_words = [
   { zh: "骄傲", en: "proud" },
   { zh: "冰箱", en: "refrigerator" },
   { zh: "兔子", en: "rabbit" },
+  { zh: "反感", en: "antipathy" },
   { zh: "协议", en: "agreement" },
   { zh: "嘴唇", en: "lips" },
   { zh: "剪刀", en: "scissors" },
