@@ -390,6 +390,25 @@ const consent_form = {
   // Add to global jsPsych properties so it appears on all trials
   jsPsych.data.addProperties({ participant_number: window.participantNumber });
 
+  const datetime_entry = {
+  type: jsPsychSurveyText,
+  questions: [
+    {
+      prompt: "Please enter your slot date:",
+      name: 'participant_date',
+      required: true,
+      placeholder: 'MM/DD/YYYY'
+    },
+    {
+      prompt: "Please enter your slot time (Final Participation Time on SONA):",
+      name: 'participant_time',
+      required: true,
+      placeholder: 'HH:MM AM/PM'
+    }
+  ],
+  preamble: '<h3>Study Information</h3><p>Before we begin, please record your slot date and time so that we can assign your credits.</p>'
+};
+
 /* ---------- Instructions ---------- */
 const warning_screen = {
   type: jsPsychHtmlKeyboardResponse,
@@ -802,6 +821,7 @@ const debrief = {
 
 /* ---------- Experiment timeline ---------- */
 timeline.push(consent_form);
+timeline.push(datetime_entry);
 timeline.push(warning_screen);
 timeline.push(start_screen);
 timeline.push(enter_fullscreen);
