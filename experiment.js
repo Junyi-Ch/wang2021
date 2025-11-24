@@ -391,22 +391,21 @@ const consent_form = {
   jsPsych.data.addProperties({ participant_number: window.participantNumber });
 
   const datetime_entry = {
-  type: jsPsychSurveyText,
-  questions: [
-    {
-      prompt: "Please enter your slot date:",
-      name: 'participant_date',
-      required: true,
-      placeholder: 'MM/DD/YYYY'
-    },
-    {
-      prompt: "Please enter your slot time (Final Participation Time on SONA):",
-      name: 'participant_time',
-      required: true,
-      placeholder: 'HH:MM AM/PM'
-    }
-  ],
-  preamble: '<h3>Study Information</h3><p>Before we begin, please record your slot date and time so that we can assign your credits.</p>'
+  type: jsPsychSurveyHtmlForm,
+  preamble: '<h3>Study Information</h3><p>Before we begin, please record your registered slot date and time so that we can assign your credits.</p>',
+  html: `
+    <div class="jspsych-survey-html-form-item">
+      <label for="participant_date"><strong>Slot Date (MM/DD/YYYY):</strong></label>
+      <input type="text" id="participant_date" name="participant_date" placeholder="MM/DD/YYYY" required>
+    </div>
+    <br>
+    
+    <div class="jspsych-survey-html-form-item">
+      <label for="participant_time"><strong>Slot time (HH:MM AM/PM):</strong></label>
+      <input type="text" id="participant_time" name="participant_time" placeholder="HH:MM AM/PM" required>
+    </div>
+  `,
+  button_label: 'Continue'
 };
 
 /* ---------- Instructions ---------- */
