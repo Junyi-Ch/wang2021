@@ -80,7 +80,12 @@ def load_and_combine_multiarrangement_trials(data_folder, equal_weights=True):
     master_words : list of str
         The word order corresponding to RDM rows/columns (length N_WORDS).
     """
-    csv_files = glob.glob(os.path.join(data_folder, "*.csv"))
+    # Load only cleaned_*.csv from top folder
+    csv_files = [
+        f for f in glob.glob(os.path.join(data_folder, "cleaned_*.csv"))
+        if os.path.isfile(f)
+]
+
     if not csv_files:
         raise FileNotFoundError(f"No .csv files found in folder: {data_folder}")
 

@@ -21,9 +21,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.manifold import MDS
 
-# -------------------------------------------------------
-# Paths (change if needed)
-# -------------------------------------------------------
 RDM_FILE = "preprocessed/all_rdms.npy"
 WORD_ORDER_FILE = "preprocessed/word_order.csv"
 EXPERIMENT_JS_FILE = "experiment.js"
@@ -40,6 +37,20 @@ print(f"Loaded RDMs: {all_rdms.shape}")
 
 words = pd.read_csv(WORD_ORDER_FILE, encoding="utf-8-sig")
 words = words.reset_index().rename(columns={"index": "word_index", "word": "word_zh"})
+print("Shape of all_rdms:", all_rdms.shape)
+
+
+# Load participant info; order must match all_rdms
+participants = pd.read_csv("preprocessed/participant_info.csv")
+print("Shape of participants:", participants.shape)
+
+assert participants.shape[0] == all_rdms.shape[0], "Participants vs RDM count mismatch!"
+
+
+# -------------------------------------------------------
+# Paths (change if needed)
+# -------------------------------------------------------
+
 
 # -------------------------------------------------------
 # zh -> en mapping from experiment.js
@@ -160,7 +171,9 @@ def plot_subject_space(subj_idx, highlight_word_en=None, ax=None):
 
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(f"Subject {subj_idx+1}")
+    pid = participants.loc[subj_idx, "participant_id"]
+    ax.set_title(f"Participant {pid}")
+
 
     if own_fig:
         # legend once per figure if you want
@@ -178,27 +191,44 @@ def plot_subject_space(subj_idx, highlight_word_en=None, ax=None):
 # 1) Make a map for each subject (optional)
 # -------------------------------------------------------
 for s in range(n_subj):
+    pid = participants.loc[s, "participant_id"]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     plot_subject_space(s, highlight_word_en="scenery", ax=ax)
     fig.tight_layout()
-    fig.savefig(os.path.join(OUT_DIR, f"subject_map_{s+1:02d}.png"), dpi=300)
+    fig.savefig(os.path.join(OUT_DIR, f"{pid}.png"), dpi=300)
     plt.close(fig)
 
-print(f"Saved per-subject maps to {OUT_DIR}/subject_map_XX.png")
+print("Saved per-participant maps using participant_id-based filenames.")
+
 
 # -------------------------------------------------------
 # 2) Example figure with 4 chosen subjects (like in the paper)
 # -------------------------------------------------------
-example_subjects = [4, 5, 8, 16]  # e.g., subjects 5, 6, 9, 17 (0-based indices)
+# -------------------------------------------------------
+# 2) Big figure: 4 rows × 8 columns = 32 subjects
+# -------------------------------------------------------
+rows, cols = 4, 8
+max_panels = rows * cols
 
-fig, axes = plt.subplots(1, 4, figsize=(16, 4))
-for ax, s in zip(axes, example_subjects):
+# if you have fewer than 32 participants, adjust automatically
+n_to_plot = min(n_subj, max_panels)
+subjects_to_plot = list(range(n_to_plot))   # [0, 1, 2, ..., n_to_plot-1]
+
+fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
+axes = axes.flatten()
+
+for ax, s in zip(axes, subjects_to_plot):
     plot_subject_space(s, highlight_word_en="scenery", ax=ax)
+    pid = participants.loc[s, "participant_id"]
+    ax.set_title(f"Participant {pid}", fontsize=8)
 
-for ax, s in zip(axes, example_subjects):
-    ax.set_title(f"Subject {s+1}", fontsize=12)
+# hide any unused axes (if n_subj < 32)
+for ax in axes[n_to_plot:]:
+    ax.axis("off")
 
 plt.tight_layout()
-fig.savefig(os.path.join(OUT_DIR, "subject_maps_example.png"), dpi=300)
+fig.savefig(os.path.join(OUT_DIR, "subject_maps_4x8.png"), dpi=300)
 plt.close(fig)
-print("Saved example 4-subject figure.")
+print("Saved 4x8 subject map figure (up to 32 participants).")
+

@@ -12,102 +12,83 @@ format:
 
 ## Introduction
 
-[No abstract is needed.]  Each replication project will have a straightforward, no frills report of the study and results.  These reports will be publicly available as supplementary material for the aggregate report(s) of the project as a whole.  Also, to maximize project integrity, the intro and methods will be written and critiqued in advance of data collection.  Introductions can be just 1-2 paragraphs clarifying the main idea of the original study, the target finding for replication, and any other essential information. You will likely contact the authors of the original study, so this should be professional and forward facing. It will NOT have a literature review -- that is in the original publication. You can write both the introduction and the methods in past tense.  
+Understanding how people represent word meaning is essential to the study of conceptual knowledge and semantic cognition. Although many past research has assumed that word meaning is shared across speakers, recent work has begun to incorporate how individuals may differ substantially in how they represent the meanings of even very common words. Wang and Bi (2021) introduced a large-scale behavioral paradigm that measured semantic similarity using a multi-arrangement task and quantified inter-subject consistency (ISC) in semantic representations. Their study reported that meanings of concrete words with sensory referents tended to yield higher cross-subject consistency than abstract words, suggesting that conceptual knowledge becomes increasingly idiosyncratic for words lacking stable perceptual grounding.
+
+The goal of the present project was to replicate the core behavioral finding reported by Wang and Bi (2021): namely, that concrete words show higher inter-subject consistency than abstract words. To accomplish this, we implemented a simplified version of their multi-arrangement paradigm and computed ISC for each word based on participants’ spatial similarity judgments. While our design diverged from the original study in several important ways (e.g., reduced number of trials and no adaptive clustering procedure), the central objective remained to test whether semantic representations of concrete words are more consistently shared across individuals relative to abstract words.
 
 ### Short Justification
 
 My research interests centered around language development, learning, and processing. I chose this experiment because I would like to do studies on semantic network, word knowledge, and individual differences. I would like to eventually do this type of studies in children, and I am still trying to poke around to see what might work for my own project. I think this experiment is a good point to start
-because it studies how adults differ in their representations of words, and how this depends on the abstractness of words. I would be able to learn specific ways of conducting the experiment and data analysis 
-that will be useful for my own study in the future.
-
-### Stimulus and Procedures
-
-#### Stimuli
-Stimuli consisted  of  90  written  Chinese words,  of  which  40 were  object  words  and  50  were words  without  explicit  external referents. Words without external referents varied in their  emotional  associations;  20  words  did  not  have emotional connotations,  and  30  were  emotionally  related words (e.g., violence). The list is included in the paper. 
-
-#### Procedures
-##### update for oct15th
-* I plan to contact the authors for their data analysis and the task. I have also tried out building the task in jspsych, and it seems to work as described in the paper.
-* I will try to use their availabel data (https://osf.io/cyusp/overview BehavioralSemanticDistanceMatrix ) to see if I can replicate the results using their data. 
-* I plan to reduce the amount of words to decrease the experiment time for participants. Currently it is 1 hour and too long. 
-* From what I can understand, their over pipeline is as followed:
-  + Task:
-    - 90 words displayed around a circular arena on a computer screen
-    - subjects drag and drop words to arrange them spatially based on semantic similarity
-    - Trial 1: All 90 words arranged, producing a 90 x 90 distance matrix.
-    - subsequent trials: adaptively selected word subsets presented for arrangement depending on the original clusters, and subjects completed varying numbers of trials.
-  + The adaptive selection process (the part I'm most unsure about)
-    - The system maintains an evidence weight matrix for all word pairs. Then, then system finds the weakest evidence pair. Then it adds words by calculating the trial efficieny until adding a word's benefit is not larger than its cost. These words form a subset. 
-  + Data Analysis:
-    - Inter-Subject Correlation (ISC) Analysis: 
-    Word representation: Each word represented as an 89-dimensional vector (its distances to all other words)
-    Pairwise correlations: Pearson correlations computed between each pair of subjects' word vectors
-    Fisher z-transformation: Applied to normalize correlation distributions
-    Averaging: Mean correlation across all 190 subject pairs (20 subjects total)
-    Result: ISC-behavior score for each word, indicating how consistently that word's semantic relationships are judged across subjects
-
-
-
-##### Semantic Judgment Task
-Subjects dragged and dropped words in a circular array on a computer screen, arranging them spatially close together or far apart  according  to  the  words’  semantic  distances. Participants do this through multiple trials where each trial contains a subset of the 90 words that were clustered together in a previous trial.
-
-#### Challenges
-One challenge for me would be to create this experiment in JsPsych, as I have little experience in coding through JsPsych. Another challenge would be the statistical analysis of the data, where they represented each word in a 89-dimensional space.
-
-#### Link to original paper
-https://github.com/Junyi-Ch/wang2021/blob/5d14173c206e148ecf507ae991633fdfdb4b7656/original_paper/wang-bi-2021-idiosyncratic-tower-of-babel-individual-differences-in-word-meaning-representation-increase-as-word.pdf
+because it studies how adults differ in their representations of words, and how this depends on the abstractness of words. I would be able to learn specific ways of conducting the experiment and data analysis that will be useful for my own study in the future.
 
 ## Methods
 
 ### Power Analysis
+A formal a priori power analysis was not feasible for this project because the primary unit of statistical inference in Wang and Bi (2021) was the word, not the participant. In the original study, inter-subject consistency was computed for each word and the concrete–abstract contrast was evaluated across 90 items. The original paradigm used an adaptive multi-arrangement procedure that increased the reliability of each word’s representational geometry across repeated refinements. Because the present study used a simplified design with a fixed number of arrangement trials and no adaptive refinement, we could not directly translate the original effect size or trial structure into a conventional participant-based power calculation.
 
+Given that we retained a similar number of words (90) and the original study had a large Cohen's d (3.58), we aimed to recruite a comparable number of participants (20 in the original study). Our item-level sample was sufficient to test for a mean ISC difference across semantic categories, although reduced trial counts likely introduced additional noise into per-word ISC estimates.
 
 
 ### Planned Sample
 
-Because this replication uses about 60% the number of words and only one arrangement per participant (less information per person about each word), I plan to increase the behavioral sample modestly from 20 to 30. I will stop data collection when 30 usable datasets are collected. A dataset is usable if the participant completes the arrangement and passes attention/comprehension checks.
+We planned to recruit fluent speakers of Chinese who could complete the multi-arrangement task online. Because ISC is derived from pairwise distances across subjects, approximately 25–30 participants was expected to yield reasonably stable inter-subject similarity estimates, although the simplified procedure may require a larger sample to compensate for reduced trial-level reliability. Participants were recruited from the undergraduate subject pool at the University of California, San Diego and participated voluntarily for course credit. All procedures followed the behavioral replication guidelines provided in the course and mirrored the task logic of Wang and Bi (2021) with the exception of the adaptive arrangement procedure.
 
-Participants will be adults recruited from UCSD. Inclusion criteria: native speakers of Mandarin Chinese. Participants will receive course credit or monetary compensation.
+Prior to data collection, we planned to exclude participants who (a) reported limited Chinese proficiency (lower than intermediate level), or (b) demonstrated extremely large pairwise distances relative to the group mean (i.e., >3 SD during preprocessing). These criteria were intended to remove cases in which semantic representations were not interpretable or were inconsistent with the task assumptions.
 
 ### Materials
 
 "Stimuli in our study consisted of 90 written Chinese words, of which 40 were object words and 50 were words without explicit external referents (see the Appendix). Object words varied in their sensory and motor attributes; they consisted of 10 animals (e.g., cat), 10 face or body parts (e.g., shoulder), and 20 artifacts such as tools and common household objects (e.g., microwave). Words without external referents varied in their emotional associations; 20 words did not have emotional connotations (i.e., “nonemotional nonobject” words, as determined by being rated as having low arousal [< 3] and being emotionally neutral [3.5–4.5] on 7-point scales by independent groups of college students; see below), and 30 were emotionally related words (e.g., violence)."
 
-I will use a 63-word subset rather than the full 90 words. I will maintain the same types/categories and match mean familiarity and frequency (as closely as possible) across the subset categories.
+We used the same set of 90 words provided in the original paper.
+
+The stimulus set consisted of 90 Chinese words drawn from five semantic categories. 40 were object words: 10 animals (e.g., cat), 10 face or body parts (e.g., shoulder), and 20 artifacts (e.g., microwave). 50 words were without external referents: 20 words did not have emotional connotations (e.g., agreement), and 30 were emotionally related (e.g., violence). All words were presented in simplified Chinese.
+
+All 90 words were shown together on the first trial, allowing participants to position the full vocabulary within a single semantic space. In the remaining five trials, words from each category were presented separately (i.e., one category per trial), providing an opportunity to adjust and refine the relative positions of items within each semantic domain.
 
 ### Procedure	
 
-"Semantic distance-judgment task. The word-meaning representations were obtained using a multiarrangement paradigm (Kriegeskorte & Mur, 2012). In this paradigm, subjects dragged and dropped words in a circular array on a computer screen, arranging them spatially close together or far apart according to the words’ semantic distances (Fig. 1a). The task consisted of multiple trials. In the first trial, subjects had to arrange all 90 words, producing a 90 × 90 matrix containing Euclidean distances among all the words. In subsequent trials, subjects were shown adaptively selected word subsets that had been clustered together in previous trials, producing partial distance matrices. The task lasted for 1 hr, during which subjects completed various numbers of trials (M = 85, SD = 71, range = 24–284). The final distance measure for each subject was calculated as the weighted average of distance measures of their multiple arrangements. Multidimensional scaling was carried out to visualize individual semantic distance matrices (number of dimensions [ndim] = 2, type = interval) using the smacof package (de Leeuw & Mair, 2009) in the R programming environment (Version 4.0.0; R Core Team, 2020)."
+The experiment implemented the multi-arrangement task in jsPsych and was conducted online. After providing informed consent, participants were instructed that their task was to arrange a set of Chinese words inside a circle such that words placed closer together indicated stronger semantic similarity. On each trial, participants used a drag-and-drop interface to position each word freely within the circular space.
 
-I will follow the multi-arrangement paradigm reported in Wang & Bi (Kriegeskorte & Mur, 2012) but instead of many adaptive trials, each participant will perform a single full-set arrangement. (I haven't decided on this yet).
+Participants completed a total of six arrangement trials. On each trial, the subset of words was sampled to include items from multiple semantic categories. Critically, unlike the original adaptive procedure used by Wang and Bi (2021), the current experiment did not include iterative refinements of the arrangement based on previous similarity estimates. Therefore, each word appeared in two distinct subset trials rather than being repeatedly positioned across dozens of adaptive trials.
+
+After completing the arrangement trials, participants advanced to a brief demographic questionnaire that included self-reported Chinese proficiency. The entire session lasted approximately 15–20 minutes.
 
 ### Analysis Plan
 
 Primary question: Do object words show higher intersubject consistency (ISC-behavior) than abstract words?
 
-"To compute the word-level ISC in behavior for each subject, we represented each word as an 89-dimensional vector of its semantic distance with the remaining words. Pearson’s correlations of the word vector among each pair of subjects were then computed, Fisher z transformed, and averaged across 190 subject pairs (20 subjects in total) to obtain ISC-behavior data for each word. The standard error of the ISC for behavior was assessed in two approaches: (a) bootstrapping the subject set with replacement 10,000 times, which evaluated ISC robustness across subjects, and (b) bootstrapping the word set with replacement 10,000 times, which evaluated ISC robustness across words included for judgment." I will compute word-level ISC-behavior exactly as in Wang & Bi but using the reduced word set (N = 63).
+Step 1: For each participant
+- Calculate 90×90 distance matrix from coordinates
+- Normalize to [0,1] range
 
-Participants will be excluded if they do not pass attention checks, or if they have words that are unarranged during the experiment. 
+Step 2: For each word (1-90)
+- Extract 89-dimensional vector (distances to other words)
+- Compute correlation matrix across all participants
+- Fisher z-transform: z = 0.5 * ln[(1+r)/(1-r)]
+- Average across participant pairs → ISC score
 
-**Clarify key analysis of interest here**  You can also pre-specify additional analyses you plan to do.
+Step 3: Statistical test
+- Independent t-test: Object words (n=40) vs Abstract words (n=50)
+- Replication criterion: 
+  * Object ISC > Abstract ISC (p < .05)
+  * Effect size d > 2.0 (original was d = 3.58)
+
+#### Additional Analysis
+Multiple regression: ISC ~ Language/Sensory + Valence + Arousal
+- Expected: Language/Sensory β>0.60 (original β = 0.74)
+- Control for word frequency and familiarity
 
 ### Differences from Original Study
 
-1. Number of words. Original: 90 words. Replication: 63 words (70%). Rationale: reduce participant burden and session length. Expected impact: fewer words reduces the number of observations at the word level (less power to detect word-level predictors) and reduces the dimensionality of word vectors (vectors of length 44 vs 89), which may change ISC estimates.
-
-2. Number of trials. Original: multiarrangement adaptive procedure producing many arrangements per subject. Replication: single full arrangement per participant (to simplify implementation). Expected impact: the original used multiple arrangements per person and computed weighted averages across arrangements to stabilize distance estimates. Using just one arrangement per participant gives less within-subject sampling and will likely increase noise. 
-
-3. Population differences. Original: Chinese college students in Beijing, native Chinese speakers. Our replication sample will be from our local subject pool in the US, and we will increase the number of participants. Expected impact: I don't expect this to impact the study since we are still testing native Mandarin speakers.
-
-### Methods Addendum (Post Data Collection)
-
-You can comment this section out prior to final report with data collection.
+1. The original study used an adaptive multi-arrangement procedure that iteratively refined the spatial positions of words across dozens of trials per participant (mean = 85), whereas the current replication included only six non-adaptive arrangement trials (including one full vocabulary trial and five category-specific trials). As a result, each word received substantially fewer opportunities for representational refinement. 
+2. The original study included both behavioral and neuroimaging measures, yet the present replication focused solely on the behavioral task.
+3. The original study recruited college students in China, whose native language was Mandarin Chinese, whereas our replication recruited students in the US who self-indicated their Chinese proficiency level.
 
 #### Actual Sample
-  To decide the sample size, a power analysis is done
+We collected data from 35 participants, and 3 were excluded because they indicated their Mandarin proficiency level was below intermediate. 
 
 #### Differences from pre-data collection methods plan
-  Any differences from what was described as the original plan, or “none”.
+More data was included in our final analysis, but it is still within a reasonable range since we reduced the number of trials compared to the original study. Also, I will discuss a more strict way to exclude participants in the exploratory section. 
 
 
 ## Results
@@ -115,18 +96,55 @@ You can comment this section out prior to final report with data collection.
 
 ### Data preparation
 
-Data preparation following the analysis plan.
+Data preparation file: 
 	
 ```{r include=F}
-### Data Preparation
+# Prelim Analysis
+library(tidyverse)
 
-#### Load Relevant Libraries and Functions
+# 1) Load all cleaned files
+clean_files <- list.files("cleaned", full.names = TRUE)
+clean_files
 
-#### Import data
 
-#### Data exclusion / filtering
+dat <- clean_files |>
+  map_dfr(readr::read_csv, show_col_types = FALSE)
 
-#### Prepare data for analysis - create columns etc.
+# Get one row per participant
+participants <- dat |>
+  group_by(participant_number) |>
+  summarise(
+    mandarin_proficiency = first(mandarin_proficiency),
+    time_elapsed_sec     = first(time_elapsed_sec),
+    .groups = "drop"
+  )
+
+#### Completion Time
+# Histogram of completion time (in minutes)
+participants <- participants |>
+  mutate(time_elapsed_min = time_elapsed_sec / 60)
+
+ggplot(participants, aes(x = time_elapsed_min)) +
+  geom_histogram(binwidth = 1) +
+  labs(
+    x = "Completion time (minutes)",
+    y = "Number of participants",
+    title = "Distribution of completion times"
+  ) +
+  theme_minimal()
+
+# Mean completion time
+participants |>
+  summarise(
+    mean_time_min = mean(time_elapsed_min, na.rm = TRUE),
+    sd_time_min   = sd(time_elapsed_min, na.rm = TRUE),
+    n             = n()
+  )
+
+# Mandarin Proficiency
+participants |>
+  count(mandarin_proficiency)
+
 ```
 
 ### Confirmatory analysis

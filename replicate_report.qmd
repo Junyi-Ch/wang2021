@@ -1,0 +1,444 @@
+---
+title: "Replication of Idiosyncratic Tower of Babel: Individual Differences in Word-Meaning Representation Increase as Word Abstractness Increases by Wang & Bi (2021, Psychological Science)"
+author: "Junyi Chen (contact information)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+format:
+  html:
+    toc: true
+    toc_depth: 3
+---
+
+<!-- Replication reports should all use this template to standardize reporting across projects.  These reports will be public supplementary materials that accompany the summary report(s) of the aggregate results. -->
+
+## Introduction
+
+Understanding how people represent word meaning is essential to the study of conceptual knowledge and semantic cognition. Although many past research has assumed that word meaning is shared across speakers, recent work has begun to incorporate how individuals may differ substantially in how they represent the meanings of even very common words. Wang and Bi (2021) introduced a large-scale behavioral paradigm that measured semantic similarity using a multi-arrangement task and quantified inter-subject consistency (ISC) in semantic representations. Their study reported that meanings of concrete words with sensory referents tended to yield higher cross-subject consistency than abstract words, suggesting that conceptual knowledge becomes increasingly idiosyncratic for words lacking stable perceptual grounding.
+
+The goal of the present project was to replicate the core behavioral finding reported by Wang and Bi (2021): namely, that concrete words show higher inter-subject consistency than abstract words. To accomplish this, we implemented a simplified version of their multi-arrangement paradigm and computed ISC for each word based on participants’ spatial similarity judgments. While our design diverged from the original study in several important ways (e.g., reduced number of trials and no adaptive clustering procedure), the central objective remained to test whether semantic representations of concrete words are more consistently shared across individuals relative to abstract words.
+
+### Short Justification
+
+My research interests centered around language development, learning, and processing. I chose this experiment because I would like to do studies on semantic network, word knowledge, and individual differences. I would like to eventually do this type of studies in children, and I am still trying to poke around to see what might work for my own project. I think this experiment is a good point to start
+because it studies how adults differ in their representations of words, and how this depends on the abstractness of words. I would be able to learn specific ways of conducting the experiment and data analysis that will be useful for my own study in the future.
+
+## Methods
+
+### Power Analysis
+A formal a priori power analysis was not feasible for this project because the primary unit of statistical inference in Wang and Bi (2021) was the word, not the participant. In the original study, inter-subject consistency was computed for each word and the concrete–abstract contrast was evaluated across 90 items. The original paradigm used an adaptive multi-arrangement procedure that increased the reliability of each word’s representational geometry across repeated refinements. Because the present study used a simplified design with a fixed number of arrangement trials and no adaptive refinement, we could not directly translate the original effect size or trial structure into a conventional participant-based power calculation.
+
+Given that we retained a similar number of words (90) and the original study had a large Cohen's d (3.58), we aimed to recruite a comparable number of participants (20 in the original study). Our item-level sample was sufficient to test for a mean ISC difference across semantic categories, although reduced trial counts likely introduced additional noise into per-word ISC estimates.
+
+
+### Planned Sample
+
+We planned to recruit fluent speakers of Chinese who could complete the multi-arrangement task online. Because ISC is derived from pairwise distances across subjects, approximately 25–30 participants was expected to yield reasonably stable inter-subject similarity estimates, although the simplified procedure may require a larger sample to compensate for reduced trial-level reliability. Participants were recruited from the undergraduate subject pool at the University of California, San Diego and participated voluntarily for course credit. All procedures followed the behavioral replication guidelines provided in the course and mirrored the task logic of Wang and Bi (2021) with the exception of the adaptive arrangement procedure.
+
+Prior to data collection, we planned to exclude participants who (a) reported limited Chinese proficiency (lower than intermediate level), or (b) demonstrated extremely large pairwise distances relative to the group mean (i.e., >3 SD during preprocessing). These criteria were intended to remove cases in which semantic representations were not interpretable or were inconsistent with the task assumptions.
+
+### Materials
+
+"Stimuli in our study consisted of 90 written Chinese words, of which 40 were object words and 50 were words without explicit external referents (see the Appendix). Object words varied in their sensory and motor attributes; they consisted of 10 animals (e.g., cat), 10 face or body parts (e.g., shoulder), and 20 artifacts such as tools and common household objects (e.g., microwave). Words without external referents varied in their emotional associations; 20 words did not have emotional connotations (i.e., “nonemotional nonobject” words, as determined by being rated as having low arousal [< 3] and being emotionally neutral [3.5–4.5] on 7-point scales by independent groups of college students; see below), and 30 were emotionally related words (e.g., violence)."
+
+We used the same set of 90 words provided in the original paper.
+
+The stimulus set consisted of 90 Chinese words drawn from five semantic categories. 40 were object words: 10 animals (e.g., cat), 10 face or body parts (e.g., shoulder), and 20 artifacts (e.g., microwave). 50 words were without external referents: 20 words did not have emotional connotations (e.g., agreement), and 30 were emotionally related (e.g., violence). All words were presented in simplified Chinese.
+
+All 90 words were shown together on the first trial, allowing participants to position the full vocabulary within a single semantic space. In the remaining five trials, words from each category were presented separately (i.e., one category per trial), providing an opportunity to adjust and refine the relative positions of items within each semantic domain.
+
+### Procedure	
+
+The experiment implemented the multi-arrangement task in jsPsych and was conducted online. After providing informed consent, participants were instructed that their task was to arrange a set of Chinese words inside a circle such that words placed closer together indicated stronger semantic similarity. On each trial, participants used a drag-and-drop interface to position each word freely within the circular space.
+
+Participants completed a total of six arrangement trials. On each trial, the subset of words was sampled to include items from multiple semantic categories. Critically, unlike the original adaptive procedure used by Wang and Bi (2021), the current experiment did not include iterative refinements of the arrangement based on previous similarity estimates. Therefore, each word appeared in two distinct subset trials rather than being repeatedly positioned across dozens of adaptive trials.
+
+After completing the arrangement trials, participants advanced to a brief demographic questionnaire that included self-reported Chinese proficiency. The entire session lasted approximately 15–20 minutes.
+
+### Analysis Plan
+
+Primary question: Do object words show higher intersubject consistency (ISC-behavior) than abstract words?
+
+Step 1: For each participant
+- Calculate 90×90 distance matrix from coordinates
+- Normalize to [0,1] range
+
+Step 2: For each word (1-90)
+- Extract 89-dimensional vector (distances to other words)
+- Compute correlation matrix across all participants
+- Fisher z-transform: z = 0.5 * ln[(1+r)/(1-r)]
+- Average across participant pairs → ISC score
+
+Step 3: Statistical test
+- Independent t-test: Object words (n=40) vs Abstract words (n=50)
+- Replication criterion: 
+  * Object ISC > Abstract ISC (p < .05)
+  * Effect size d > 2.0 (original was d = 3.58)
+
+#### Additional Analysis
+Multiple regression: ISC ~ Language/Sensory + Valence + Arousal
+- Expected: Language/Sensory β>0.60 (original β = 0.74)
+- Control for word frequency and familiarity
+
+### Differences from Original Study
+
+1. The original study used an adaptive multi-arrangement procedure that iteratively refined the spatial positions of words across dozens of trials per participant (mean = 85), whereas the current replication included only six non-adaptive arrangement trials (including one full vocabulary trial and five category-specific trials). As a result, each word received substantially fewer opportunities for representational refinement. 
+2. The original study included both behavioral and neuroimaging measures, yet the present replication focused solely on the behavioral task.
+3. The original study recruited college students in China, whose native language was Mandarin Chinese, whereas our replication recruited students in the US who self-indicated their Chinese proficiency level.
+
+#### Actual Sample
+We collected data from 35 participants, and 3 were excluded because they indicated their Mandarin proficiency level was below intermediate. Additionally, 13 were excluded because their completion time was less than 10 minutes or larger than 90 minutes. This resulted in 19 data in our final analyses. 
+
+#### Differences from pre-data collection methods plan
+
+
+
+## Results
+
+
+### Data preparation
+
+Data preparation file:
+```{r}
+# Prelim Analysis
+library(tidyverse)
+
+# 1) Load all cleaned files
+clean_files <- list.files("cleaned", pattern = "^cleaned_.*\\.csv$", full.names = TRUE)
+
+dat <- clean_files |>
+  map_dfr(readr::read_csv, show_col_types = FALSE)
+
+# Get one row per participant
+participants <- dat |>
+  group_by(participant_number) |>
+  summarise(
+    mandarin_proficiency = first(mandarin_proficiency),
+    time_elapsed_sec     = first(time_elapsed_sec),
+    age     = first(age),
+    gender     = first(gender),
+    .groups = "drop"
+  )
+```
+
+```{r}
+participants <- participants |>
+  mutate(complete_time = time_elapsed_sec / 60)
+too_fast <- participants |> filter(complete_time < 10)
+too_slow <- participants |> filter(complete_time > 90)
+outliers <- bind_rows(too_fast, too_slow)
+cat("\nAll time-based exclusions:\n")
+print(outliers)
+
+participants_clean <- participants |>
+  filter(complete_time >= 10, complete_time <= 90)
+
+```
+
+	
+```{r}
+#### Completion Time
+# Histogram of completion time (in minutes)
+
+
+ggplot(participants_clean, aes(x = complete_time)) +
+  geom_histogram(binwidth = 1) +
+  labs(
+    x = "Completion time (minutes)",
+    y = "Number of participants",
+    title = "Distribution of completion times"
+  ) +
+  theme_minimal()
+
+# Mean completion time
+participants_clean |>
+  summarise(
+    complete_time = mean(complete_time, na.rm = TRUE),
+    sd_time   = sd(participants_clean$complete_time, na.rm = TRUE),
+    n             = n()
+  )
+
+# Mandarin Proficiency
+participants_clean |>
+  count(mandarin_proficiency)
+
+# Mean age
+participants_clean |>
+  summarise(
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age   = sd(age, na.rm = TRUE),
+    n             = n()
+  )
+
+# Gender count
+participants_clean |>
+  count(gender)
+
+```
+
+### Confirmatory analysis
+
+Data analysis:
+ 1. Ran preprocessing_multiarrangement.py to get a files that contain the 90 × 90 word matrix for all participants.
+ 2. Ran data_analysis_multiarrangement.py to perform the planned analysis with 10000 bootstraps. 
+ 
+ The results are in the folder: 
+
+```{r fig.width=20, fig.height=6}
+# Plot ISC by words
+# This code is generated by ChatGPT, adpated from the psychopy version I had before.
+library(tidyverse)
+library(stringr)
+
+word_order_path <- "preprocessed/word_order.csv"
+isc_path        <- "results/step1_subject_bootstrap_stats.csv"
+experiment_js   <- "experiment.js"
+
+# ---------- 1. zh → en mapping from experiment.js ----------
+js_txt <- read_file(experiment_js)
+
+# matches { zh: "....", en: "...." }
+pairs <- str_match_all(
+  js_txt,
+  "\\{\\s*zh:\\s*\"([^\"]+)\"\\s*,\\s*en:\\s*\"([^\"]+)\"\\s*\\}"
+)[[1]]
+
+cn2en <- setNames(pairs[, 3], pairs[, 2])  # names = zh, values = en
+
+# ---------- 2. Category definitions (Chinese) ----------
+animals_zh <- c("蚂蚁","猫","大象","长颈鹿","熊猫","兔子","老鼠","麻雀","老虎","乌龟")
+body_parts_zh <- c("脚踝","胳膊","耳朵","眼睛","手指","膝盖","嘴唇","鼻子","肩膀","大腿")
+artifacts_zh <- c(
+  "空调","斧头","床","扫帚","柜子","椅子","筷子","鼠标","锤子","钥匙",
+  "微波炉","铅笔","冰箱","剪刀","沙发","勺子","桌子","电视","牙刷","洗衣机"
+)
+emotional_zh <- c(
+  "愤怒","反感","冷漠","慈善","舒心","死亡","债务","沮丧","疾病","纠纷",
+  "错误","兴奋","缘分","过失","恐惧","骗局","友情","快乐","天堂","敌意",
+  "爱心","魔力","婚姻","奇迹","骄傲","难过","风景","光彩","创伤","暴力"
+)
+nonemotional_zh <- c(
+  "协议","买卖","性质","概念","内容","数据","纪律","作用","身份","方法",
+  "义务","现象","过程","原因","关系","结果","社会","地位","制度","团队"
+)
+
+get_category <- function(w) {
+  if (w %in% animals_zh)              return("Animal")
+  if (w %in% body_parts_zh)          return("Face/Body Part")
+  if (w %in% artifacts_zh)           return("Artifact")
+  if (w %in% emotional_zh)           return("Emotional Nonobject")
+  if (w %in% nonemotional_zh)        return("Nonemotional Nonobject")
+  "Unknown"
+}
+
+category_colors <- c(
+  "Animal"                = "#b2182b",
+  "Face/Body Part"        = "#ef8a62",
+  "Artifact"              = "#fddbc7",
+  "Emotional Nonobject"   = "#4393c3",
+  "Nonemotional Nonobject"= "#2166ac",
+  "Unknown"               = "#999999"
+)
+
+# ---------- 3. Load word order + ISC stats ----------
+word_order <- read_csv(word_order_path, show_col_types = FALSE) |>
+  # python used reset_index() starting at 0
+  mutate(
+    word_index = row_number() - 1L,
+    word_zh    = word
+  ) |>
+  select(word_index, word_zh)
+
+step1 <- read_csv(isc_path, show_col_types = FALSE)
+
+# word_index should be 0..89
+# str(step1)
+
+# merge
+df <- step1 |>
+  left_join(word_order, by = "word_index") |>
+  mutate(
+    word_en  = cn2en[word_zh],
+    category = vapply(word_zh, get_category, character(1))
+  )
+
+# sanity checks
+df %>% filter(is.na(word_en)) %>% select(word_index, word_zh) -> missing_en
+if (nrow(missing_en) > 0) {
+  message("Some words missing English translation in experiment.js:")
+  print(missing_en)
+}
+
+df %>% filter(category == "Unknown") %>% select(word_index, word_zh, word_en) -> unknown_cat
+if (nrow(unknown_cat) > 0) {
+  message("Some words did not match any category:")
+  print(unknown_cat)
+}
+
+# ---------- 4. Sort by mean ISC (Fisher-z) ----------
+# step1 columns from python: mean, std_err, ci_2.5, ci_97.5, p_value, word_index
+df_sorted <- df |>
+  arrange(desc(mean)) |>
+  mutate(
+    # use English label if available, otherwise fallback to Chinese
+    label_en = if_else(is.na(word_en), word_zh, word_en),
+    # fix factor order = sorted order
+    label_en = factor(label_en, levels = label_en)
+  )
+
+# ---------- 5. Plot (similar to matplotlib version) ----------
+ggplot(df_sorted, aes(x = label_en, y = mean, fill = category)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(
+    aes(
+      ymin = `ci_2.5`,
+      ymax = `ci_97.5`
+    ),
+    width = 0.3
+  ) +
+  scale_fill_manual(values = category_colors) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Words (sorted by ISC)",
+    y = "Fisher-transformed ISC",
+    fill = "Category",
+    title = "Word-level ISC (Fisher-z)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+    panel.grid.major.x = element_blank()
+  )
+
+```
+
+![original paper figure](results/original_result.png){width=100%}
+```{r}
+isc <- read_csv("results/step1_subject_bootstrap_stats.csv")
+words <- read_csv("preprocessed/word_order.csv")
+
+# merge
+df <- isc %>% 
+  left_join(words %>% mutate(word_index=row_number()-1), 
+            by="word_index")
+
+# define categories
+animals <- c("蚂蚁","猫","大象","长颈鹿","熊猫","兔子","老鼠","麻雀","老虎","乌龟")
+body_parts <- c("脚踝","胳膊","耳朵","眼睛","手指","膝盖","嘴唇","鼻子","肩膀","大腿")
+artifacts <- c("空调","斧头","床","扫帚","柜子","椅子","筷子","鼠标","锤子","钥匙",
+  "微波炉","铅笔","冰箱","剪刀","沙发","勺子","桌子","电视","牙刷","洗衣机")
+emotional <- c("愤怒","反感","冷漠","慈善","舒心","死亡","债务","沮丧","疾病","纠纷",
+  "错误","兴奋","缘分","过失","恐惧","骗局","友情","快乐","天堂","敌意",
+  "爱心","魔力","婚姻","奇迹","骄傲","难过","风景","光彩","创伤","暴力")
+nonemotional <- c(  "协议","买卖","性质","概念","内容","数据","纪律","作用","身份","方法",
+  "义务","现象","过程","原因","关系","结果","社会","地位","制度","团队")
+
+df <- df %>%
+  mutate(object = case_when(
+    word %in% animals ~ TRUE,
+    word %in% body_parts ~ TRUE,
+    word %in% artifacts ~ TRUE,
+    TRUE ~ FALSE
+  ))
+
+t.test(df$mean[df$object==TRUE],
+       df$mean[df$object==FALSE])
+
+```
+```{r}
+#Effect size
+t <- 2.5248
+n1 <- 40
+n2 <- 50
+d <- t * sqrt(1/n1 + 1/n2)
+d
+
+```
+
+```{r}
+df <- df %>%
+  mutate(
+    word_type = ifelse(object,"concrete","abstract")
+  )
+
+#summarize
+summary_df <- df %>%
+  group_by(word_type) %>%
+  summarize(
+    N = n(),
+    average_isc = mean(mean),
+    sd_isc = sd(mean)
+    #ci = 
+  )
+
+library(cowplot)
+ggplot(df,aes(word_type,mean, color=word_type))+
+  geom_violin()+
+  geom_point(position=position_jitter(width=0.05))+
+  theme_cowplot()+
+  theme(legend.position="none")+
+  xlab("Word Type")
+```
+
+
+### Exploratory analyses
+
+I plotted the responses for the 32 participants (excluding participants who self-indicated that they were below intermediate level of Mandarin). Although no one was excluded because of our outlier criteria, when examining the words for each participants, it is clear that some people were randomly placing words. 
+
+![example plot 1](figures/subject_map_01.png){width=40%} 
+
+![example plot 2](figures/subject_map_02.png){width=40%}
+
+![example plot 3](figures/subject_map_06.png){width=40%}
+
+So I first calculated the closest 10 pairs in the original data (link the data analysis file). Then, I excluded participants who had at least a distance of 0.3 for at least half of their trials. There were only two excluded files that were different from the main analysis, and it resulted in 20 participants in total for the data analysis. The plot is shown below. 
+
+![exploratory analysis](results_explo/word_ISC_barplot_english.png){width=100%}
+```{r}
+isc_expl <- read_csv("results_explo/step1_subject_bootstrap_stats.csv")
+words_expl <- read_csv("preprocessed/word_order.csv")
+
+# merge
+df_expl <- isc_expl %>% 
+  left_join(words_expl %>% mutate(word_index=row_number()-1), 
+            by="word_index")
+
+# define categories
+animals <- c("蚂蚁","猫","大象","长颈鹿","熊猫","兔子","老鼠","麻雀","老虎","乌龟")
+body_parts <- c("脚踝","胳膊","耳朵","眼睛","手指","膝盖","嘴唇","鼻子","肩膀","大腿")
+artifacts <- c("空调","斧头","床","扫帚","柜子","椅子","筷子","鼠标","锤子","钥匙",
+  "微波炉","铅笔","冰箱","剪刀","沙发","勺子","桌子","电视","牙刷","洗衣机")
+emotional <- c("愤怒","反感","冷漠","慈善","舒心","死亡","债务","沮丧","疾病","纠纷",
+  "错误","兴奋","缘分","过失","恐惧","骗局","友情","快乐","天堂","敌意",
+  "爱心","魔力","婚姻","奇迹","骄傲","难过","风景","光彩","创伤","暴力")
+nonemotional <- c(  "协议","买卖","性质","概念","内容","数据","纪律","作用","身份","方法",
+  "义务","现象","过程","原因","关系","结果","社会","地位","制度","团队")
+
+df_expl <- df_expl %>%
+  mutate(object = case_when(
+    word %in% animals ~ TRUE,
+    word %in% body_parts ~ TRUE,
+    word %in% artifacts ~ TRUE,
+    TRUE ~ FALSE
+  ))
+
+t.test(df_expl$mean[df_expl$object==TRUE],
+       df_expl$mean[df_expl$object==FALSE])
+```
+
+```{r}
+t <- 3.1711
+n1 <- 40
+n2 <- 50
+d <- t * sqrt(1/n1 + 1/n2)
+d
+
+```
+
+
+## Discussion
+
+### Summary of Replication Attempt
+
+Our confirmatory analysis tested the hypothesis from Wang and Bi (2021) that semantic representations would be more similar across individuals for object words than for abstract words. Consistent with this prediction, we observed significantly higher ISC values for object words compared with abstract words in our sample, t(87.83) = 2.52, p = .013, Cohen's d = 0.54. Although our effect size was markedly smaller than that reported in the original study—likely due to our fewer trials and lack of adaptive arrangements, the direction and statistical reliability of the effect suggest a partial replication of the original behavioral finding. Overall, we replicated the main study result with a much smaller effect size.
+
+### Commentary
+For the exploratory analysis, we did a same analysis as the main analysis but used a different way of excluding participants, namely based on if they reasonably arranged the words by comparing with word pair distances from the original study. This did not pose much difference to the data included, but it did increase the effect size of our study and resulted in a smaller p-value. We partially replicated the study: we did show a significant difference between ISC for concrete words vs abstract words, with concrete words having higher ISC. However, as shown in our figure, it is much noisier than the what the original study found. Our effect size is much smaller than the original study, too. The main reason for this descrepancy would be that the present study included only six fixed multi-arrangement trials, whereas the original study had on average 85 trials for each participant and an adaptive process. This may result in a more coarse arrangement. It is also possible that participant characteristics introduced variability that the original laboratory-based study did not face: firstly, our participants were either international students or heritage speakers of Mandarin Chinese. Their langauge proficiency may differ from college students in China. Secondly, we conducted the study online, while the original study was an in-person lab based study. This may influence participant's attention and effort when completing the task. 

@@ -24,7 +24,7 @@ from matplotlib.patches import Patch
 # ===============================================================
 # CONFIG: file paths (adjust if your structure is different)
 # ===============================================================
-WORD_ORDER_FILE = "preprocessed/word_order.csv"
+WORD_ORDER_FILE = "processed_explo/word_order.csv"
 ISC_FILE = "results/step1_subject_bootstrap_stats.csv"
 EXPERIMENT_JS_FILE = "experiment.js"
 OUTPUT_FIG = "results/word_ISC_barplot_english.png"
