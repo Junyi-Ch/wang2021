@@ -1,6 +1,6 @@
 ---
 title: "Replication of Idiosyncratic Tower of Babel: Individual Differences in Word-Meaning Representation Increase as Word Abstractness Increases by Wang & Bi (2021, Psychological Science)"
-author: "Junyi Chen (contact information)"
+author: "Junyi Chen (apc003@ucsd.edu)"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 format:
   html:
@@ -85,10 +85,10 @@ Multiple regression: ISC ~ Language/Sensory + Valence + Arousal
 3. The original study recruited college students in China, whose native language was Mandarin Chinese, whereas our replication recruited students in the US who self-indicated their Chinese proficiency level.
 
 #### Actual Sample
-We collected data from 35 participants, and 3 were excluded because they indicated their Mandarin proficiency level was below intermediate. 
+We collected data from 35 participants, and 3 were excluded because they indicated their Mandarin proficiency level was below intermediate. Additionally, 13 were excluded because their completion time was less than 10 minutes or larger than 90 minutes. This resulted in 19 data in our final analyses. 
 
 #### Differences from pre-data collection methods plan
-More data was included in our final analysis, but it is still within a reasonable range since we reduced the number of trials compared to the original study. Also, I will discuss a more strict way to exclude participants in the exploratory section. 
+The additional analysis was removed from my analysis because it was for the fMRI data in the original paper, and I decided that it may not be as approriate for my behavioral data.
 
 
 ## Results
@@ -96,16 +96,14 @@ More data was included in our final analysis, but it is still within a reasonabl
 
 ### Data preparation
 
-Data preparation file: 
-	
-```{r include=F}
+Data preparation file:https://github.com/psyc-201/wang2021/blob/master/preprocessing.py
+
+```{r}
 # Prelim Analysis
 library(tidyverse)
 
 # 1) Load all cleaned files
-clean_files <- list.files("cleaned", full.names = TRUE)
-clean_files
-
+clean_files <- list.files("cleaned", pattern = "^cleaned_.*\\.csv$", full.names = TRUE)
 
 dat <- clean_files |>
   map_dfr(readr::read_csv, show_col_types = FALSE)
@@ -116,15 +114,33 @@ participants <- dat |>
   summarise(
     mandarin_proficiency = first(mandarin_proficiency),
     time_elapsed_sec     = first(time_elapsed_sec),
+    age     = first(age),
+    gender     = first(gender),
     .groups = "drop"
   )
+```
+#### Data exclusion
+Thirteen participants were excluded because their completion time was less than 10 minutes or more than 90 minutes.
+```{r}
+participants <- participants |>
+  mutate(complete_time = time_elapsed_sec / 60)
+too_fast <- participants |> filter(complete_time < 10)
+too_slow <- participants |> filter(complete_time > 90)
+outliers <- bind_rows(too_fast, too_slow)
+cat("\nAll time-based exclusions:\n")
+print(outliers)
 
+participants_clean <- participants |>
+  filter(complete_time >= 10, complete_time <= 90)
+
+```
+### Basic Info
+A total of 19 participants were included in the final data analysis following exclusion criteria. Participants completed the study in an average of 18.9 minutes. The sample consisted of 12 females and 9 males, with a mean age of 23. In terms of language background, 16 participants self-identified as native speakers of Mandarin Chinese, and 3 reported advanced proficiency.
+
+```{r}
 #### Completion Time
 # Histogram of completion time (in minutes)
-participants <- participants |>
-  mutate(time_elapsed_min = time_elapsed_sec / 60)
-
-ggplot(participants, aes(x = time_elapsed_min)) +
+ggplot(participants_clean, aes(x = complete_time)) +
   geom_histogram(binwidth = 1) +
   labs(
     x = "Completion time (minutes)",
@@ -134,35 +150,297 @@ ggplot(participants, aes(x = time_elapsed_min)) +
   theme_minimal()
 
 # Mean completion time
-participants |>
+participants_clean |>
   summarise(
-    mean_time_min = mean(time_elapsed_min, na.rm = TRUE),
-    sd_time_min   = sd(time_elapsed_min, na.rm = TRUE),
+    complete_time = mean(complete_time, na.rm = TRUE),
+    sd_time   = sd(participants_clean$complete_time, na.rm = TRUE),
     n             = n()
   )
 
 # Mandarin Proficiency
-participants |>
+participants_clean |>
   count(mandarin_proficiency)
+
+# Mean age
+participants_clean |>
+  summarise(
+    mean_age = mean(age, na.rm = TRUE),
+    sd_age   = sd(age, na.rm = TRUE),
+    n             = n()
+  )
+
+# Gender count
+participants_clean |>
+  count(gender)
 
 ```
 
 ### Confirmatory analysis
 
-The analyses as specified in the analysis plan.  
+1. Ran preprocessing_multiarrangement.py to get a files that contain the 90 × 90 word matrix for all participants. (https://github.com/psyc-201/wang2021/blob/master/preprocessing_multiarrangement.py)
+2. Ran data_analysis_multiarrangement.py to perform the planned analysis with 10000 bootstraps. (https://github.com/psyc-201/wang2021/blob/master/data_analysis_multiarrangement.py)
+ 
+The results are in the folder: https://github.com/psyc-201/wang2021/tree/master/results
+ 
+An independent-samples t-test comparing ISC values for object versus non-object words revealed a significant difference, t(87.83) = 2.52, p = .013. On average, object words showed higher ISC (M = 0.573) than non-object words (M = 0.550). The 95% confidence interval for the mean difference is [.005, .042].
 
-*Side-by-side graph with original graph is ideal here*
+```{r fig.width=20, fig.height=6}
+# Plot ISC by words
+# This code is generated by ChatGPT, adpated from the psychopy version I had before.
+library(tidyverse)
+library(stringr)
+
+word_order_path <- "preprocessed/word_order.csv"
+isc_path        <- "results/step1_subject_bootstrap_stats.csv"
+experiment_js   <- "experiment.js"
+
+# ---------- 1. zh → en mapping from experiment.js ----------
+js_txt <- read_file(experiment_js)
+
+# matches { zh: "....", en: "...." }
+pairs <- str_match_all(
+  js_txt,
+  "\\{\\s*zh:\\s*\"([^\"]+)\"\\s*,\\s*en:\\s*\"([^\"]+)\"\\s*\\}"
+)[[1]]
+
+cn2en <- setNames(pairs[, 3], pairs[, 2])  # names = zh, values = en
+
+# ---------- 2. Category definitions (Chinese) ----------
+animals_zh <- c("蚂蚁","猫","大象","长颈鹿","熊猫","兔子","老鼠","麻雀","老虎","乌龟")
+body_parts_zh <- c("脚踝","胳膊","耳朵","眼睛","手指","膝盖","嘴唇","鼻子","肩膀","大腿")
+artifacts_zh <- c(
+  "空调","斧头","床","扫帚","柜子","椅子","筷子","鼠标","锤子","钥匙",
+  "微波炉","铅笔","冰箱","剪刀","沙发","勺子","桌子","电视","牙刷","洗衣机"
+)
+emotional_zh <- c(
+  "愤怒","反感","冷漠","慈善","舒心","死亡","债务","沮丧","疾病","纠纷",
+  "错误","兴奋","缘分","过失","恐惧","骗局","友情","快乐","天堂","敌意",
+  "爱心","魔力","婚姻","奇迹","骄傲","难过","风景","光彩","创伤","暴力"
+)
+nonemotional_zh <- c(
+  "协议","买卖","性质","概念","内容","数据","纪律","作用","身份","方法",
+  "义务","现象","过程","原因","关系","结果","社会","地位","制度","团队"
+)
+
+get_category <- function(w) {
+  if (w %in% animals_zh)              return("Animal")
+  if (w %in% body_parts_zh)          return("Face/Body Part")
+  if (w %in% artifacts_zh)           return("Artifact")
+  if (w %in% emotional_zh)           return("Emotional Nonobject")
+  if (w %in% nonemotional_zh)        return("Nonemotional Nonobject")
+  "Unknown"
+}
+
+category_colors <- c(
+  "Animal"                = "#b2182b",
+  "Face/Body Part"        = "#ef8a62",
+  "Artifact"              = "#fddbc7",
+  "Emotional Nonobject"   = "#4393c3",
+  "Nonemotional Nonobject"= "#2166ac",
+  "Unknown"               = "#999999"
+)
+
+# ---------- 3. Load word order + ISC stats ----------
+word_order <- read_csv(word_order_path, show_col_types = FALSE) |>
+  # python used reset_index() starting at 0
+  mutate(
+    word_index = row_number() - 1L,
+    word_zh    = word
+  ) |>
+  select(word_index, word_zh)
+
+step1 <- read_csv(isc_path, show_col_types = FALSE)
+
+# word_index should be 0..89
+# str(step1)
+
+# merge
+df <- step1 |>
+  left_join(word_order, by = "word_index") |>
+  mutate(
+    word_en  = cn2en[word_zh],
+    category = vapply(word_zh, get_category, character(1))
+  )
+
+# sanity checks
+df %>% filter(is.na(word_en)) %>% select(word_index, word_zh) -> missing_en
+if (nrow(missing_en) > 0) {
+  message("Some words missing English translation in experiment.js:")
+  print(missing_en)
+}
+
+df %>% filter(category == "Unknown") %>% select(word_index, word_zh, word_en) -> unknown_cat
+if (nrow(unknown_cat) > 0) {
+  message("Some words did not match any category:")
+  print(unknown_cat)
+}
+
+# ---------- 4. Sort by mean ISC (Fisher-z) ----------
+# step1 columns from python: mean, std_err, ci_2.5, ci_97.5, p_value, word_index
+df_sorted <- df |>
+  arrange(desc(mean)) |>
+  mutate(
+    # use English label if available, otherwise fallback to Chinese
+    label_en = if_else(is.na(word_en), word_zh, word_en),
+    # fix factor order = sorted order
+    label_en = factor(label_en, levels = label_en)
+  )
+
+# ---------- 5. Plot (similar to matplotlib version) ----------
+ggplot(df_sorted, aes(x = label_en, y = mean, fill = category)) +
+  geom_col(color = "black", linewidth = 0.3) +
+  geom_errorbar(
+    aes(
+      ymin = `ci_2.5`,
+      ymax = `ci_97.5`
+    ),
+    width = 0.3
+  ) +
+  scale_fill_manual(values = category_colors) +
+  coord_cartesian(ylim = c(0, NA)) +
+  labs(
+    x = "Words (sorted by ISC)",
+    y = "Fisher-transformed ISC",
+    fill = "Category",
+    title = "Word-level ISC (Fisher-z)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+    panel.grid.major.x = element_blank()
+  )
+
+```
+
+![original paper figure](results/original_result.png){width=100%}
+```{r}
+isc <- read_csv("results/step1_subject_bootstrap_stats.csv")
+words <- read_csv("preprocessed/word_order.csv")
+
+# merge
+df <- isc %>% 
+  left_join(words %>% mutate(word_index=row_number()-1), 
+            by="word_index")
+
+# define categories
+animals <- c("蚂蚁","猫","大象","长颈鹿","熊猫","兔子","老鼠","麻雀","老虎","乌龟")
+body_parts <- c("脚踝","胳膊","耳朵","眼睛","手指","膝盖","嘴唇","鼻子","肩膀","大腿")
+artifacts <- c("空调","斧头","床","扫帚","柜子","椅子","筷子","鼠标","锤子","钥匙",
+  "微波炉","铅笔","冰箱","剪刀","沙发","勺子","桌子","电视","牙刷","洗衣机")
+emotional <- c("愤怒","反感","冷漠","慈善","舒心","死亡","债务","沮丧","疾病","纠纷",
+  "错误","兴奋","缘分","过失","恐惧","骗局","友情","快乐","天堂","敌意",
+  "爱心","魔力","婚姻","奇迹","骄傲","难过","风景","光彩","创伤","暴力")
+nonemotional <- c(  "协议","买卖","性质","概念","内容","数据","纪律","作用","身份","方法",
+  "义务","现象","过程","原因","关系","结果","社会","地位","制度","团队")
+
+df <- df %>%
+  mutate(object = case_when(
+    word %in% animals ~ TRUE,
+    word %in% body_parts ~ TRUE,
+    word %in% artifacts ~ TRUE,
+    TRUE ~ FALSE
+  ))
+
+t.test(df$mean[df$object==TRUE],
+       df$mean[df$object==FALSE])
+
+```
+```{r}
+#Effect size
+t <- 2.5248
+n1 <- 40
+n2 <- 50
+d <- t * sqrt(1/n1 + 1/n2)
+d
+
+```
+
+```{r}
+df <- df %>%
+  mutate(
+    word_type = ifelse(object,"concrete","abstract")
+  )
+
+#summarize
+summary_df <- df %>%
+  group_by(word_type) %>%
+  summarize(
+    N = n(),
+    average_isc = mean(mean),
+    sd_isc = sd(mean)
+    #ci = 
+  )
+
+library(cowplot)
+ggplot(df,aes(word_type,mean, color=word_type))+
+  geom_violin()+
+  geom_point(position=position_jitter(width=0.05))+
+  theme_cowplot()+
+  theme(legend.position="none")+
+  xlab("Word Type")
+```
+
 
 ### Exploratory analyses
 
-Any follow-up analyses desired (not required).  
+I plotted the responses for the 32 participants (excluding participants who self-indicated that they were below intermediate level of Mandarin). Although no one was excluded because of our outlier criteria, when examining the words for each participants, it is clear that some people were randomly placing words. 
+
+![example plot 1](figures/subject_map_01.png){width=40%} 
+
+![example plot 2](figures/subject_map_02.png){width=40%}
+
+![example plot 3](figures/subject_map_06.png){width=40%}
+
+So I first calculated the closest 10 pairs in the original data (link the data analysis file). Then, I excluded participants who had at least a distance of 0.3 for at least half of their trials. There were only two excluded files that were different from the main analysis, and it resulted in 20 participants in total for the data analysis. The plot is shown below. 
+
+![exploratory analysis](results_explo/word_ISC_barplot_english.png){width=100%}
+```{r}
+isc_expl <- read_csv("results_explo/step1_subject_bootstrap_stats.csv")
+words_expl <- read_csv("preprocessed/word_order.csv")
+
+# merge
+df_expl <- isc_expl %>% 
+  left_join(words_expl %>% mutate(word_index=row_number()-1), 
+            by="word_index")
+
+# define categories
+animals <- c("蚂蚁","猫","大象","长颈鹿","熊猫","兔子","老鼠","麻雀","老虎","乌龟")
+body_parts <- c("脚踝","胳膊","耳朵","眼睛","手指","膝盖","嘴唇","鼻子","肩膀","大腿")
+artifacts <- c("空调","斧头","床","扫帚","柜子","椅子","筷子","鼠标","锤子","钥匙",
+  "微波炉","铅笔","冰箱","剪刀","沙发","勺子","桌子","电视","牙刷","洗衣机")
+emotional <- c("愤怒","反感","冷漠","慈善","舒心","死亡","债务","沮丧","疾病","纠纷",
+  "错误","兴奋","缘分","过失","恐惧","骗局","友情","快乐","天堂","敌意",
+  "爱心","魔力","婚姻","奇迹","骄傲","难过","风景","光彩","创伤","暴力")
+nonemotional <- c(  "协议","买卖","性质","概念","内容","数据","纪律","作用","身份","方法",
+  "义务","现象","过程","原因","关系","结果","社会","地位","制度","团队")
+
+df_expl <- df_expl %>%
+  mutate(object = case_when(
+    word %in% animals ~ TRUE,
+    word %in% body_parts ~ TRUE,
+    word %in% artifacts ~ TRUE,
+    TRUE ~ FALSE
+  ))
+
+t.test(df_expl$mean[df_expl$object==TRUE],
+       df_expl$mean[df_expl$object==FALSE])
+```
+
+```{r}
+t <- 3.1711
+n1 <- 40
+n2 <- 50
+d <- t * sqrt(1/n1 + 1/n2)
+d
+
+```
+
 
 ## Discussion
 
 ### Summary of Replication Attempt
 
-Open the discussion section with a paragraph summarizing the primary result from the confirmatory analysis and the assessment of whether it replicated, partially replicated, or failed to replicate the original result.  
+Our confirmatory analysis tested the hypothesis from Wang and Bi (2021) that semantic representations would be more similar across individuals for object words than for abstract words. Consistent with this prediction, we observed significantly higher ISC values for object words compared with abstract words in our sample, t(87.83) = 2.52, p = .013, Cohen's d = 0.54. Although our effect size was markedly smaller than that reported in the original study—likely due to our fewer trials and lack of adaptive arrangements, the direction and statistical reliability of the effect suggest a partial replication of the original behavioral finding. Overall, we replicated the main study result with a much smaller effect size.
 
 ### Commentary
-
-Add open-ended commentary (if any) reflecting (a) insights from follow-up exploratory analysis, (b) assessment of the meaning of the replication (or not) - e.g., for a failure to replicate, are the differences between original and present study ones that definitely, plausibly, or are unlikely to have been moderators of the result, and (c) discussion of any objections or challenges raised by the current and original authors about the replication attempt.  None of these need to be long.
+For the exploratory analysis, we did a same analysis as the main analysis but used a different way of excluding participants, namely based on if they reasonably arranged the words by comparing with word pair distances from the original study. This did not pose much difference to the data included, but it did increase the effect size of our study and resulted in a smaller p-value. We partially replicated the study: we did show a significant difference between ISC for concrete words vs abstract words, with concrete words having higher ISC. However, as shown in our figure, it is much noisier than the what the original study found. Our effect size is much smaller than the original study, too. The main reason for this descrepancy would be that the present study included only six fixed multi-arrangement trials, whereas the original study had on average 85 trials for each participant and an adaptive process. This may result in a more coarse arrangement. It is also possible that participant characteristics introduced variability that the original laboratory-based study did not face: firstly, our participants were either international students or heritage speakers of Mandarin Chinese. Their langauge proficiency may differ from college students in China. Secondly, we conducted the study online, while the original study was an in-person lab based study. This may influence participant's attention and effort when completing the task. 

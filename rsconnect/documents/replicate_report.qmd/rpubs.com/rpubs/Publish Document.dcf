@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/1379082/a9f485ad961a4a09b6819b6c978dc845
+bundleId: https://api.rpubs.com/api/v1/document/1379082/a9f485ad961a4a09b6819b6c978dc845
+url: http://rpubs.com/junyichen/1379082
+version: 1
